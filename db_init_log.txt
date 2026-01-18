@@ -1,0 +1,22 @@
+D:\vibe coding\Absen Kelas\cryptgen-class\node_modules\@libsql\core\lib-cjs\uri.js:12
+        throw new api_js_1.LibsqlError(`The URL '${text}' is not in a valid format`, "URL_INVALID");
+              ^
+
+LibsqlError: URL_INVALID: The URL '' is not in a valid format
+    at parseUri (D:\vibe coding\Absen Kelas\cryptgen-class\node_modules\@libsql\core\lib-cjs\uri.js:12:15)
+    at expandConfig (D:\vibe coding\Absen Kelas\cryptgen-class\node_modules\@libsql\core\lib-cjs\config.js:29:39)
+    at createClient (D:\vibe coding\Absen Kelas\cryptgen-class\node_modules\@libsql\client\lib-cjs\node.js:28:52)
+    at <anonymous> (D:\vibe coding\Absen Kelas\cryptgen-class\src\lib\db.ts:8:19)
+    at Object.<anonymous> (D:\vibe coding\Absen Kelas\cryptgen-class\src\lib\db.ts:125:17)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object.transformer (C:\Users\Administrator\AppData\Local\npm-cache\_npx\fd45a72a545557e9\node_modules\tsx\dist\register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14) {
+  code: 'URL_INVALID',
+  extendedCode: undefined,
+  rawCode: undefined,
+  [cause]: undefined
+}
+
+Node.js v22.20.0
