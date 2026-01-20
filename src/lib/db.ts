@@ -107,6 +107,19 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Tasks table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        course_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        deadline TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+      )
+    `);
+
     // Create indexes for better performance
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_attendances_user ON attendances(user_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_attendances_course ON attendances(course_id)`);

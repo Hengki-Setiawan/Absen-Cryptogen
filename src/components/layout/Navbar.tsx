@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Menu, X, Home, Calendar, ClipboardCheck, Users } from 'lucide-react';
+import { Menu, X, Home, Calendar, ClipboardCheck, Users, BookOpen } from 'lucide-react';
 
 const navLinks = [
     { href: '/', label: 'Beranda', icon: Home },
     { href: '/jadwal', label: 'Jadwal', icon: Calendar },
+    { href: '/tugas', label: 'Tugas', icon: BookOpen },
     { href: '/mahasiswa', label: 'Mahasiswa', icon: Users },
 ];
 
