@@ -113,6 +113,31 @@ export default function OverviewManager() {
         }
     };
 
+    // Export specific course on specific date
+    const handleExportCourse = (date: string, courseName: string, items: Attendance[]) => {
+        try {
+            const exportData = items.map((a, index) => ({
+                'No': index + 1,
+                'NIM': a.nim,
+                'Nama Mahasiswa': a.student_name,
+                'Waktu Absen': a.check_in_time,
+                'Status': a.status?.toUpperCase() || 'HADIR',
+                'Keterangan': a.notes || '-'
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Absensi');
+
+            // Clean course name for filename
+            const cleanCourseName = courseName.replace(/[^a-zA-Z0-9]/g, '_');
+            const fileName = `Absensi_${cleanCourseName}_${date}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+        } catch (error) {
+            alert('Gagal export Excel');
+        }
+    };
+
     // Group data by date then course
     const groupedData: GroupedData = attendances.reduce((acc, item) => {
         const date = item.attendance_date;
@@ -193,16 +218,24 @@ export default function OverviewManager() {
                                         const courseKey = `${date}-${course}`;
                                         return (
                                             <div key={courseKey} className="border border-slate-100 rounded-lg overflow-hidden">
-                                                <button
-                                                    onClick={() => toggleCourse(courseKey)}
-                                                    className="w-full flex items-center justify-between p-3 bg-white hover:bg-slate-50 transition-colors"
-                                                >
-                                                    <div className="flex items-center gap-2">
+                                                <div className="flex items-center justify-between p-3 bg-white hover:bg-slate-50 transition-colors">
+                                                    <button
+                                                        onClick={() => toggleCourse(courseKey)}
+                                                        className="flex items-center gap-2 flex-1"
+                                                    >
                                                         {expandedCourses.has(courseKey) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                                         <span className="font-medium text-blue-600">{course}</span>
                                                         <span className="text-xs text-slate-500">({items.length} siswa)</span>
-                                                    </div>
-                                                </button>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleExportCourse(date, course, items)}
+                                                        className="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                                                        title={`Export ${course} - ${date}`}
+                                                    >
+                                                        <FileSpreadsheet className="w-3 h-3" />
+                                                        Export
+                                                    </button>
+                                                </div>
 
                                                 {expandedCourses.has(courseKey) && (
                                                     <div className="divide-y divide-slate-100">
@@ -214,9 +247,9 @@ export default function OverviewManager() {
                                                                 </div>
                                                                 <div className="flex items-center gap-3">
                                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${a.status === 'hadir' ? 'bg-green-100 text-green-700' :
-                                                                            a.status === 'izin' ? 'bg-yellow-100 text-yellow-700' :
-                                                                                a.status === 'sakit' ? 'bg-blue-100 text-blue-700' :
-                                                                                    'bg-red-100 text-red-700'
+                                                                        a.status === 'izin' ? 'bg-yellow-100 text-yellow-700' :
+                                                                            a.status === 'sakit' ? 'bg-blue-100 text-blue-700' :
+                                                                                'bg-red-100 text-red-700'
                                                                         }`}>
                                                                         {a.status?.toUpperCase() || 'HADIR'}
                                                                     </span>
