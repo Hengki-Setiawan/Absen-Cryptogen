@@ -152,12 +152,40 @@ export default function JadwalPage() {
                                 <div className="grid gap-4">
                                     {filteredSchedules.map((schedule, index) => {
                                         const taskCount = getTaskCount(schedule.course);
+
+                                        // Check if currently active (WITA)
+                                        const now = new Date();
+                                        const witaTime = new Intl.DateTimeFormat('en-US', {
+                                            timeZone: 'Asia/Makassar',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false
+                                        }).format(now);
+
+                                        const witaDay = new Intl.DateTimeFormat('id-ID', {
+                                            timeZone: 'Asia/Makassar',
+                                            weekday: 'long'
+                                        }).format(now);
+
+                                        const isToday = witaDay.toLowerCase() === schedule.day.toLowerCase();
+                                        const isTimeMatch = witaTime >= schedule.startTime && witaTime <= schedule.endTime;
+                                        const isActive = isToday && isTimeMatch;
+
                                         return (
                                             <div
                                                 key={schedule.id}
-                                                className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-shadow"
+                                                className={`rounded-2xl shadow-sm border p-5 transition-all relative overflow-hidden
+                                                    ${isActive
+                                                        ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 shadow-blue-100'
+                                                        : 'bg-white border-slate-100 hover:shadow-md'
+                                                    }`}
                                                 style={{ animationDelay: `${index * 50}ms` }}
                                             >
+                                                {isActive && (
+                                                    <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg animate-pulse">
+                                                        SEDANG BERLANGSUNG
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                                                     <div className={`w-1.5 h-full sm:h-16 ${schedule.color} rounded-full hidden sm:block`} />
                                                     <div className={`h-1.5 w-full sm:hidden ${schedule.color} rounded-full`} />
@@ -185,11 +213,11 @@ export default function JadwalPage() {
                                                         </div>
 
                                                         <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-slate-500">
-                                                            <div className="flex items-center gap-1.5">
+                                                            <div className={`flex items-center gap-1.5 ${isActive ? 'text-blue-600 font-medium' : ''}`}>
                                                                 <Calendar className="w-4 h-4 text-blue-500" />
                                                                 {schedule.day}
                                                             </div>
-                                                            <div className="flex items-center gap-1.5">
+                                                            <div className={`flex items-center gap-1.5 ${isActive ? 'text-blue-600 font-medium' : ''}`}>
                                                                 <Clock className="w-4 h-4 text-green-500" />
                                                                 {schedule.startTime} - {schedule.endTime}
                                                             </div>

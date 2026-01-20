@@ -41,7 +41,15 @@ export default function AbsenPage() {
     const [selectedCourse, setSelectedCourse] = useState('');
     const [courseInput, setCourseInput] = useState('');
     const [attendanceDate, setAttendanceDate] = useState(() => {
-        return new Date().toISOString().split('T')[0];
+        // Use WITA (UTC+8) date
+        const now = new Date();
+        const witaDate = new Intl.DateTimeFormat('en-CA', { // en-CA outputs YYYY-MM-DD
+            timeZone: 'Asia/Makassar',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(now);
+        return witaDate;
     });
     const [status, setStatus] = useState('hadir');
     const [notes, setNotes] = useState('');

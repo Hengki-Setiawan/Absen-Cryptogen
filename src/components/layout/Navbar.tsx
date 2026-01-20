@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { Menu, X, Home, Calendar, ClipboardCheck, Users, BookOpen, Megaphone } from 'lucide-react';
+import Clock from '../Clock';
 
 const navLinks = [
     { href: '/', label: 'Beranda', icon: Home },
@@ -51,8 +52,9 @@ export default function Navbar() {
                         ))}
                     </div>
 
-                    {/* CTA Button */}
-                    <div className="hidden lg:flex items-center gap-2">
+                    {/* Clock & CTA Button */}
+                    <div className="hidden lg:flex items-center gap-3">
+                        <Clock />
                         <Link
                             href="/absen"
                             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
@@ -96,6 +98,9 @@ export default function Navbar() {
                                 <ClipboardCheck className="w-5 h-5" />
                                 Isi Absen
                             </Link>
+                            <div className="mx-4 mt-2 flex justify-center">
+                                <Clock />
+                            </div>
                         </div>
                     </div>
                 )}
