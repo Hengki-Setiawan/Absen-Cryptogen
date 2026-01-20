@@ -25,6 +25,7 @@ export async function initializeDatabase() {
         password TEXT,
         avatar_url TEXT,
         phone TEXT,
+        instagram TEXT,
         position TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       )

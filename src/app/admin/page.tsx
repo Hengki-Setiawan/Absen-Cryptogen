@@ -10,8 +10,9 @@ import TaskManager from '@/components/admin/TaskManager';
 import ContentManager from '@/components/admin/ContentManager';
 import StatisticsManager from '@/components/admin/StatisticsManager';
 import QRGenerator from '@/components/admin/QRGenerator';
+import BlogManager from '@/components/admin/BlogManager';
 
-type TabType = 'overview' | 'statistics' | 'qr' | 'students' | 'schedules' | 'tasks' | 'content' | 'admins';
+type TabType = 'overview' | 'statistics' | 'qr' | 'students' | 'schedules' | 'tasks' | 'blog' | 'content' | 'admins';
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -128,6 +129,7 @@ export default function AdminPage() {
         { id: 'students', label: '👨‍🎓 Mahasiswa' },
         { id: 'schedules', label: '📅 Jadwal' },
         { id: 'tasks', label: '📌 Tugas' },
+        { id: 'blog', label: '📢 Blog' },
         { id: 'content', label: '📝 Konten' },
         { id: 'admins', label: '🔐 Admin' },
     ];
@@ -180,6 +182,7 @@ export default function AdminPage() {
                     {activeTab === 'students' && <StudentManager />}
                     {activeTab === 'schedules' && <ScheduleManager />}
                     {activeTab === 'tasks' && <TaskManager />}
+                    {activeTab === 'blog' && <BlogManager />}
                     {activeTab === 'content' && <ContentManager />}
                     {activeTab === 'admins' && <AdminManager />}
                 </div>
