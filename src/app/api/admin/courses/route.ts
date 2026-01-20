@@ -43,9 +43,9 @@ export async function POST(request: Request) {
         // 2. Create Schedule
         const scheduleId = generateId();
         await db.execute({
-            sql: `INSERT INTO schedules (id, course_id, day, start_time, end_time, room, type)
-              VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            args: [scheduleId, courseId, day, start_time, end_time, room, type]
+            sql: `INSERT INTO schedules (id, course_id, day, start_time, end_time, room, type, meeting_link)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [scheduleId, courseId, day, start_time, end_time, room, type, body.meeting_link || null]
         });
 
         return NextResponse.json({ success: true, id: scheduleId });
@@ -76,8 +76,8 @@ export async function PUT(request: Request) {
 
         // Update Schedule
         await db.execute({
-            sql: "UPDATE schedules SET day = ?, start_time = ?, end_time = ?, room = ?, type = ? WHERE id = ?",
-            args: [day, start_time, end_time, room, type, id]
+            sql: "UPDATE schedules SET day = ?, start_time = ?, end_time = ?, room = ?, type = ?, meeting_link = ? WHERE id = ?",
+            args: [day, start_time, end_time, room, type, body.meeting_link || null, id]
         });
 
         return NextResponse.json({ success: true });

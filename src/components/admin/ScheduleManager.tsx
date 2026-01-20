@@ -13,6 +13,7 @@ type Schedule = {
     end_time: string;
     room: string;
     type: 'offline' | 'online';
+    meeting_link?: string;
 };
 
 export default function ScheduleManager() {
@@ -28,7 +29,8 @@ export default function ScheduleManager() {
         start_time: '',
         end_time: '',
         room: '',
-        type: 'offline'
+        type: 'offline',
+        meeting_link: ''
     });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -96,7 +98,8 @@ export default function ScheduleManager() {
             start_time: '',
             end_time: '',
             room: '',
-            type: 'offline'
+            type: 'offline',
+            meeting_link: ''
         });
     };
 
@@ -111,7 +114,8 @@ export default function ScheduleManager() {
                 start_time: schedule.start_time,
                 end_time: schedule.end_time,
                 room: schedule.room,
-                type: schedule.type as any
+                type: schedule.type as any,
+                meeting_link: schedule.meeting_link || ''
             });
         } else {
             setEditingSchedule(null);
@@ -264,16 +268,30 @@ export default function ScheduleManager() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Ruangan / Link</label>
+                                <label className="block text-sm font-medium mb-1">Ruangan</label>
                                 <input
                                     type="text"
                                     value={formData.room}
                                     onChange={e => setFormData({ ...formData, room: e.target.value })}
                                     className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="Contoh: R. 301 atau Zoom Link"
+                                    placeholder="Contoh: R. 301"
                                     required
                                 />
                             </div>
+
+                            {formData.type === 'online' && (
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Link Meeting (Zoom/GMeet)</label>
+                                    <input
+                                        type="url"
+                                        value={formData.meeting_link}
+                                        onChange={e => setFormData({ ...formData, meeting_link: e.target.value })}
+                                        className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="https://meet.google.com/..."
+                                        required
+                                    />
+                                </div>
+                            )}
 
                             <button
                                 type="submit"

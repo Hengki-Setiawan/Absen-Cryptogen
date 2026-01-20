@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { Menu, X, Home, Calendar, ClipboardCheck, Users, BookOpen, Megaphone } from 'lucide-react';
 import Clock from '../Clock';
+import LiveClassBadge from '../LiveClassBadge';
 
 const navLinks = [
     { href: '/', label: 'Beranda', icon: Home },
@@ -105,6 +106,7 @@ export default function Navbar() {
                     </div>
                 )}
             </nav>
+            <LiveClassBadge />
         </header>
     );
 }
