@@ -4,11 +4,16 @@ import { db, generateId } from '@/lib/db';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { studentId, courseId, attendanceDate, status, notes, photoUrl, timestamp } = body;
+        const { studentId, courseId, attendanceDate, status, notes, photoUrl, timestamp, isQr } = body;
 
         // Validate required fields
-        if (!studentId || !courseId || !attendanceDate || !status || !photoUrl) {
+        // If isQr is true, photoUrl is NOT required
+        if (!studentId || !courseId || !attendanceDate || !status) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        if (!isQr && !photoUrl) {
+            return NextResponse.json({ error: 'Photo is required for manual attendance' }, { status: 400 });
         }
 
         // Insert into attendances table
@@ -54,7 +59,7 @@ export async function POST(request: Request) {
                 timestamp, // check_in_time
                 status,
                 notes || '',
-                photoUrl
+                photoUrl || (isQr ? 'QR_SUBMISSION' : null)
             ]
         });
 
