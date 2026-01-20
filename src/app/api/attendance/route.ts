@@ -25,6 +25,20 @@ export async function POST(request: Request) {
         }
 
         const realCourseId = scheduleResult.rows[0].course_id;
+
+        // Rate Limiting: Check if student already submitted for this course on this date
+        const existingAttendance = await db.execute({
+            sql: `SELECT id FROM attendances 
+                  WHERE user_id = ? AND schedule_id = ? AND attendance_date = ?`,
+            args: [studentId, courseId, attendanceDate]
+        });
+
+        if (existingAttendance.rows.length > 0) {
+            return NextResponse.json({
+                error: 'Anda sudah absen untuk mata kuliah ini hari ini.'
+            }, { status: 429 });
+        }
+
         const attendanceId = generateId();
 
         await db.execute({

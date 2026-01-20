@@ -54,22 +54,62 @@ export default function AbsenPage() {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Fetch Data on Mount
+    // Fetch Data on Mount with Caching
     useEffect(() => {
         async function fetchData() {
+            // Try to load from cache first
+            const cachedData = localStorage.getItem('absen-data-cache');
+            const cacheTimestamp = localStorage.getItem('absen-data-timestamp');
+            const cacheMaxAge = 60 * 60 * 1000; // 1 hour
+
+            if (cachedData && cacheTimestamp) {
+                const isValid = Date.now() - parseInt(cacheTimestamp) < cacheMaxAge;
+                if (isValid) {
+                    const data = JSON.parse(cachedData);
+                    setStudents(data.students);
+                    setCourses(data.courses);
+                    setIsLoadingData(false);
+
+                    // Also restore saved student selection
+                    const savedStudent = localStorage.getItem('saved-student-id');
+                    const savedStudentName = localStorage.getItem('saved-student-name');
+                    if (savedStudent && savedStudentName) {
+                        setSelectedStudent(savedStudent);
+                        setStudentInput(savedStudentName);
+                    }
+
+                    // Still fetch fresh data in background
+                    fetchFreshData(false);
+                    return;
+                }
+            }
+
+            // No valid cache, fetch with loading state
+            await fetchFreshData(true);
+        }
+
+        async function fetchFreshData(showLoading: boolean) {
+            if (showLoading) setIsLoadingData(true);
             try {
                 const response = await fetch('/api/data');
                 if (!response.ok) throw new Error('Failed to fetch data');
                 const data = await response.json();
                 setStudents(data.students);
                 setCourses(data.courses);
+
+                // Save to cache
+                localStorage.setItem('absen-data-cache', JSON.stringify(data));
+                localStorage.setItem('absen-data-timestamp', Date.now().toString());
             } catch (error) {
                 console.error('Error fetching data:', error);
-                setErrorMessage('Gagal memuat data. Silakan refresh halaman.');
+                if (showLoading) {
+                    setErrorMessage('Gagal memuat data. Silakan refresh halaman.');
+                }
             } finally {
-                setIsLoadingData(false);
+                if (showLoading) setIsLoadingData(false);
             }
         }
+
         fetchData();
     }, []);
 
@@ -79,9 +119,11 @@ export default function AbsenPage() {
             setIsCompressing(true);
             try {
                 const options = {
-                    maxSizeMB: 1,
-                    maxWidthOrHeight: 1024,
+                    maxSizeMB: 0.2, // 200KB max
+                    maxWidthOrHeight: 800,
                     useWebWorker: true,
+                    fileType: 'image/webp', // Convert to WebP for smaller size
+                    initialQuality: 0.7,
                 };
                 const compressedFile = await imageCompression(file, options);
                 setFile(compressedFile);
@@ -176,6 +218,10 @@ export default function AbsenPage() {
                 console.error('API response error:', response.status, errorData);
                 throw new Error(errorData.error || 'Gagal menyimpan data absensi');
             }
+
+            // Save student selection for next time
+            localStorage.setItem('saved-student-id', selectedStudent);
+            localStorage.setItem('saved-student-name', studentInput);
 
             setSubmitStatus('success');
         } catch (error: unknown) {

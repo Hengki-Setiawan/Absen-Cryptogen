@@ -1,0 +1,160 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart3, Users, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+
+type StatData = {
+    totalAttendances: number;
+    statusCounts: { status: string; count: number }[];
+    courseCounts: { course_name: string; count: number }[];
+    topStudents: { student_name: string; count: number }[];
+};
+
+export default function StatisticsManager() {
+    const [stats, setStats] = useState<StatData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchStats = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/admin/statistics');
+            if (!res.ok) throw new Error('Failed to fetch');
+            const data = await res.json();
+            setStats(data);
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchStats();
+    }, [fetchStats]);
+
+    const getStatusColor = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'hadir': return 'bg-green-500';
+            case 'izin': return 'bg-yellow-500';
+            case 'sakit': return 'bg-blue-500';
+            default: return 'bg-red-500';
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'hadir': return <CheckCircle className="w-4 h-4" />;
+            case 'izin': return <Clock className="w-4 h-4" />;
+            case 'sakit': return <AlertCircle className="w-4 h-4" />;
+            default: return <AlertCircle className="w-4 h-4" />;
+        }
+    };
+
+    if (isLoading) {
+        return <div className="text-center py-12">Memuat statistik...</div>;
+    }
+
+    if (!stats) {
+        return <div className="text-center py-12 text-slate-500">Gagal memuat data</div>;
+    }
+
+    const maxCourseCount = Math.max(...stats.courseCounts.map(c => c.count), 1);
+    const maxStudentCount = Math.max(...stats.topStudents.map(s => s.count), 1);
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-700">Dashboard Statistik</h3>
+                    <p className="text-sm text-slate-500">Ringkasan data absensi</p>
+                </div>
+                <button onClick={fetchStats} className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+                </button>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                        <BarChart3 className="w-5 h-5" />
+                        <span className="text-sm opacity-90">Total Absensi</span>
+                    </div>
+                    <div className="text-2xl font-bold">{stats.totalAttendances}</div>
+                </div>
+
+                {stats.statusCounts.map(({ status, count }) => (
+                    <div key={status} className={`${getStatusColor(status)} text-white p-4 rounded-xl`}>
+                        <div className="flex items-center gap-2 mb-2">
+                            {getStatusIcon(status)}
+                            <span className="text-sm opacity-90 capitalize">{status || 'Unknown'}</span>
+                        </div>
+                        <div className="text-2xl font-bold">{count}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid md:grid-cols-2 gap-6">
+                {/* Per Course Bar Chart */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                    <h4 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" /> Absensi per Mata Kuliah
+                    </h4>
+                    <div className="space-y-3">
+                        {stats.courseCounts.map(({ course_name, count }) => (
+                            <div key={course_name}>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="truncate">{course_name}</span>
+                                    <span className="font-medium">{count}</span>
+                                </div>
+                                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                        style={{ width: `${(count / maxCourseCount) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        {stats.courseCounts.length === 0 && (
+                            <p className="text-center text-slate-400 py-4">Belum ada data</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Top Students */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4">
+                    <h4 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                        <Users className="w-4 h-4" /> Top 5 Mahasiswa Terrajin
+                    </h4>
+                    <div className="space-y-3">
+                        {stats.topStudents.map(({ student_name, count }, index) => (
+                            <div key={student_name} className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${index === 0 ? 'bg-yellow-500' :
+                                        index === 1 ? 'bg-slate-400' :
+                                            index === 2 ? 'bg-amber-600' : 'bg-slate-300'
+                                    }`}>
+                                    {index + 1}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="font-medium text-sm truncate">{student_name}</div>
+                                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-green-500 rounded-full transition-all duration-500"
+                                            style={{ width: `${(count / maxStudentCount) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <span className="text-sm font-medium text-slate-600">{count}x</span>
+                            </div>
+                        ))}
+                        {stats.topStudents.length === 0 && (
+                            <p className="text-center text-slate-400 py-4">Belum ada data</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

@@ -8,8 +8,9 @@ import AdminManager from '@/components/admin/AdminManager';
 import OverviewManager from '@/components/admin/OverviewManager';
 import TaskManager from '@/components/admin/TaskManager';
 import ContentManager from '@/components/admin/ContentManager';
+import StatisticsManager from '@/components/admin/StatisticsManager';
 
-type TabType = 'overview' | 'students' | 'schedules' | 'tasks' | 'content' | 'admins';
+type TabType = 'overview' | 'statistics' | 'students' | 'schedules' | 'tasks' | 'content' | 'admins';
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -121,6 +122,7 @@ export default function AdminPage() {
 
     const tabs: { id: TabType; label: string }[] = [
         { id: 'overview', label: '📊 Overview' },
+        { id: 'statistics', label: '📈 Statistik' },
         { id: 'students', label: '👨‍🎓 Mahasiswa' },
         { id: 'schedules', label: '📅 Jadwal' },
         { id: 'tasks', label: '📌 Tugas' },
@@ -159,8 +161,8 @@ export default function AdminPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
-                                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             {tab.label}
@@ -171,6 +173,7 @@ export default function AdminPage() {
                 {/* Content */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[400px]">
                     {activeTab === 'overview' && <OverviewManager />}
+                    {activeTab === 'statistics' && <StatisticsManager />}
                     {activeTab === 'students' && <StudentManager />}
                     {activeTab === 'schedules' && <ScheduleManager />}
                     {activeTab === 'tasks' && <TaskManager />}
