@@ -37,9 +37,28 @@ export default function MahasiswaPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-    // ... (useEffect)
+    useEffect(() => {
+        const fetchStudents = async () => {
+            try {
+                const res = await fetch('/api/admin/users?role=student');
+                const data = await res.json();
+                setStudents(data);
+            } catch (error) {
+                console.error('Failed to fetch students', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    // ... (filters)
+        fetchStudents();
+    }, []);
+
+    const filteredStudents = students.filter(student =>
+        student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.nim.includes(searchTerm)
+    );
+
+    const executivesCount = students.filter(s => s.position && s.position !== 'Anggota').length;
 
     return (
         <div className="min-h-screen py-12">
@@ -92,7 +111,7 @@ export default function MahasiswaPage() {
                                 <div className="w-px h-12 bg-[var(--border)]" />
                                 <div className="text-center">
                                     <div className="text-3xl font-bold text-[var(--primary)]">
-                                        {pengurusCount}
+                                        {executivesCount}
                                     </div>
                                     <div className="text-sm text-[var(--foreground-muted)]">Pengurus</div>
                                 </div>
