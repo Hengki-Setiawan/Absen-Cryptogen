@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
-import Navbar from '@/components/layout/Navbar';
 
 type Task = {
     id: string;
@@ -48,7 +47,7 @@ export default function TasksPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 pb-20">
-            <Navbar />
+
 
             <main className="max-w-4xl mx-auto px-4 py-8">
                 <div className="mb-8">
