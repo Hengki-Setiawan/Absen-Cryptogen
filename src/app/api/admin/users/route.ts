@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { nim, full_name, role, username, password, position, avatar_url } = body;
+        const { nim, full_name, role, username, password, position, avatar_url, phone, instagram, email } = body;
 
         // Basic validation
         if (!full_name || !role) {
@@ -36,18 +36,20 @@ export async function POST(request: Request) {
         const id = generateId();
 
         await db.execute({
-            sql: `INSERT INTO users (id, nim, email, full_name, role, username, password, position, avatar_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            sql: `INSERT INTO users (id, nim, email, full_name, role, username, password, position, avatar_url, phone, instagram)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
                 id,
                 nim || null,
-                `${id}@placeholder.com`, // Dummy email if not provided
+                email || `${id}@placeholder.com`, // Use provided email or dummy
                 full_name,
                 role,
                 username || null,
                 password || null,
                 position || 'Anggota',
-                avatar_url || null
+                avatar_url || null,
+                phone || null,
+                instagram || null
             ]
         });
 
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json();
-        const { id, nim, full_name, username, password, position, avatar_url } = body;
+        const { id, nim, full_name, username, password, position, avatar_url, phone, instagram, email } = body;
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
@@ -83,6 +85,18 @@ export async function PUT(request: Request) {
         if (avatar_url !== undefined) {
             query += ', avatar_url = ?';
             args.push(avatar_url);
+        }
+        if (phone !== undefined) {
+            query += ', phone = ?';
+            args.push(phone);
+        }
+        if (instagram !== undefined) {
+            query += ', instagram = ?';
+            args.push(instagram);
+        }
+        if (email !== undefined) {
+            query += ', email = ?';
+            args.push(email);
         }
 
         query += ' WHERE id = ?';

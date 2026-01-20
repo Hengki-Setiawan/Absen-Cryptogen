@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Users, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { BarChart3, Users, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 
 type StatData = {
     totalAttendances: number;
@@ -69,9 +69,26 @@ export default function StatisticsManager() {
                     <h3 className="text-lg font-bold text-slate-700">Dashboard Statistik</h3>
                     <p className="text-sm text-slate-500">Ringkasan data absensi</p>
                 </div>
-                <button onClick={fetchStats} className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
-                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={async () => {
+                            if (!confirm('Hapus bukti absen lama (>24 jam)? Foto profil aman.')) return;
+                            try {
+                                const res = await fetch('/api/cron/cleanup', { method: 'POST' });
+                                const data = await res.json();
+                                alert(`Selesai! ${data.deletedCount} file dihapus.`);
+                            } catch (e) {
+                                alert('Gagal membersihkan storage.');
+                            }
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4" /> Cleanup
+                    </button>
+                    <button onClick={fetchStats} className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+                    </button>
+                </div>
             </div>
 
             {/* Summary Cards */}
@@ -132,8 +149,8 @@ export default function StatisticsManager() {
                         {stats.topStudents.map(({ student_name, count }, index) => (
                             <div key={student_name} className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${index === 0 ? 'bg-yellow-500' :
-                                        index === 1 ? 'bg-slate-400' :
-                                            index === 2 ? 'bg-amber-600' : 'bg-slate-300'
+                                    index === 1 ? 'bg-slate-400' :
+                                        index === 2 ? 'bg-amber-600' : 'bg-slate-300'
                                     }`}>
                                     {index + 1}
                                 </div>
