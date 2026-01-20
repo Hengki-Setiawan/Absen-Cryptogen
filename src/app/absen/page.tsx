@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Upload, CheckCircle, AlertCircle, Camera, Loader2 } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, Camera, Loader2, WifiOff, RefreshCw } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import imageCompression from 'browser-image-compression';
 import Image from 'next/image';
+import { saveOfflineSubmission, getOfflineSubmissions, clearOfflineSubmissions } from '@/lib/offline-storage';
 
 // Initialize Supabase Client (Client-side)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -49,10 +50,94 @@ export default function AbsenPage() {
     const [isCompressing, setIsCompressing] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error' | 'offline-saved'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
 
+    const [isOffline, setIsOffline] = useState(false);
+    const [pendingCount, setPendingCount] = useState(0);
+    const [isSyncing, setIsSyncing] = useState(false);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Check online status
+    useEffect(() => {
+        setIsOffline(!navigator.onLine);
+
+        const handleOnline = () => {
+            setIsOffline(false);
+            syncOfflineData();
+        };
+        const handleOffline = () => setIsOffline(true);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        // Check pending submissions on load
+        getOfflineSubmissions().then(items => setPendingCount(items.length));
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    const syncOfflineData = async () => {
+        const items = await getOfflineSubmissions();
+        if (items.length === 0) return;
+
+        setIsSyncing(true);
+        let successCount = 0;
+        const successIds: number[] = [];
+
+        for (const item of items) {
+            try {
+                // Upload image first
+                const fileExt = item.file.name.split('.').pop();
+                const fileName = `${item.studentId}/${Date.now()}.${fileExt}`;
+
+                if (!supabase) throw new Error('Supabase not configured');
+
+                const { error: uploadError } = await supabase.storage
+                    .from('attendance-photos')
+                    .upload(fileName, item.file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('attendance-photos')
+                    .getPublicUrl(fileName);
+
+                // Submit to API
+                const res = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId: item.studentId,
+                        courseId: item.courseId,
+                        attendanceDate: item.attendanceDate,
+                        status: item.status,
+                        notes: item.notes,
+                        photoUrl: publicUrl,
+                        timestamp: new Date().toISOString()
+                    }),
+                });
+
+                if (res.ok) {
+                    successCount++;
+                    successIds.push(item.id);
+                }
+            } catch (error) {
+                console.error('Sync error for item:', item, error);
+            }
+        }
+
+        if (successIds.length > 0) {
+            await clearOfflineSubmissions(successIds);
+            setPendingCount(prev => prev - successIds.length);
+            alert(`Berhasil sinkronisasi ${successCount} data absensi!`);
+        }
+        setIsSyncing(false);
+    };
 
     // Fetch Data on Mount with Caching
     useEffect(() => {
@@ -113,6 +198,41 @@ export default function AbsenPage() {
         fetchData();
     }, []);
 
+    // Handle QR Token
+    useEffect(() => {
+        if (courses.length === 0) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+
+        if (token) {
+            try {
+                const json = atob(token);
+                const data = JSON.parse(json);
+
+                // Check expiry
+                if (data.exp < Date.now()) {
+                    setErrorMessage('QR Code sudah kadaluarsa. Silakan minta QR baru.');
+                    return;
+                }
+
+                // Set Course
+                const course = courses.find(c => c.id === data.sid);
+                if (course) {
+                    setSelectedCourse(course.id);
+                    setCourseInput(`${course.name} - ${course.day} (${course.start_time})`);
+                }
+
+                // Set Date
+                if (data.d) {
+                    setAttendanceDate(data.d);
+                }
+            } catch (e) {
+                console.error('Invalid token', e);
+            }
+        }
+    }, [courses]);
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -163,6 +283,28 @@ export default function AbsenPage() {
         setErrorMessage('');
 
         try {
+            // Handle Offline Submission
+            if (isOffline) {
+                await saveOfflineSubmission({
+                    studentId: selectedStudent,
+                    courseId: selectedCourse,
+                    attendanceDate,
+                    status,
+                    notes,
+                    file
+                });
+
+                // Save student selection for next time
+                localStorage.setItem('saved-student-id', selectedStudent);
+                localStorage.setItem('saved-student-name', studentInput);
+
+                setSubmitStatus('offline-saved');
+                setPendingCount(prev => prev + 1);
+                setIsSubmitting(false);
+                return;
+            }
+
+            // Check if Supabase is configured
             // Check if Supabase is configured
             if (!supabase) {
                 throw new Error('Supabase tidak terkonfigurasi. Hubungi administrator.');
@@ -261,6 +403,33 @@ export default function AbsenPage() {
         );
     }
 
+    if (submitStatus === 'offline-saved') {
+        return (
+            <div className="min-h-screen py-20 bg-slate-50 flex items-center justify-center">
+                <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md mx-4 w-full">
+                    <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <WifiOff className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Tersimpan Offline</h2>
+                    <p className="text-slate-600 mb-6">
+                        Data tersimpan di perangkat. Akan otomatis diupload saat online.
+                    </p>
+                    <button
+                        onClick={() => {
+                            setSubmitStatus('idle');
+                            setFile(null);
+                            setPreviewUrl(null);
+                            setNotes('');
+                        }}
+                        className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors"
+                    >
+                        Kembali
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen py-12 bg-slate-50">
             <div className="max-w-2xl mx-auto px-4">
@@ -271,6 +440,34 @@ export default function AbsenPage() {
 
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="p-6 sm:p-8">
+                        {/* Offline Indicator */}
+                        {(isOffline || pendingCount > 0) && (
+                            <div className={`mb-6 p-4 rounded-xl flex items-center justify-between ${isOffline ? 'bg-amber-50 text-amber-800' : 'bg-blue-50 text-blue-800'}`}>
+                                <div className="flex items-center gap-3">
+                                    {isOffline ? <WifiOff className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
+                                    <div>
+                                        <div className="font-bold text-sm">
+                                            {isOffline ? 'Mode Offline' : 'Sinkronisasi Data'}
+                                        </div>
+                                        <div className="text-xs opacity-90">
+                                            {pendingCount} data menunggu upload
+                                        </div>
+                                    </div>
+                                </div>
+                                {!isOffline && pendingCount > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={syncOfflineData}
+                                        disabled={isSyncing}
+                                        className="px-3 py-1.5 bg-white rounded-lg text-xs font-bold shadow-sm hover:bg-blue-100 disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                        {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                        Sync Sekarang
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         {isLoadingData ? (
                             <div className="flex justify-center py-12">
                                 <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />

@@ -32,6 +32,11 @@ export default function OverviewManager() {
     const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
+    // Date filter state
+    const [filterType, setFilterType] = useState<'all' | 'week' | 'month' | 'custom'>('all');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     const fetchAttendances = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -138,8 +143,37 @@ export default function OverviewManager() {
         }
     };
 
+    // Filter attendances by date range
+    const getFilteredAttendances = () => {
+        if (filterType === 'all') return attendances;
+
+        const today = new Date();
+        let start: Date, end: Date;
+
+        if (filterType === 'week') {
+            start = new Date(today);
+            start.setDate(today.getDate() - 7);
+            end = today;
+        } else if (filterType === 'month') {
+            start = new Date(today);
+            start.setMonth(today.getMonth() - 1);
+            end = today;
+        } else {
+            // custom
+            start = startDate ? new Date(startDate) : new Date(0);
+            end = endDate ? new Date(endDate) : new Date();
+        }
+
+        return attendances.filter(a => {
+            const date = new Date(a.attendance_date);
+            return date >= start && date <= end;
+        });
+    };
+
+    const filteredAttendances = getFilteredAttendances();
+
     // Group data by date then course
-    const groupedData: GroupedData = attendances.reduce((acc, item) => {
+    const groupedData: GroupedData = filteredAttendances.reduce((acc, item) => {
         const date = item.attendance_date;
         const course = item.course_name;
 
@@ -178,8 +212,40 @@ export default function OverviewManager() {
             <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-slate-700">Rekap Absensi</h3>
-                    <p className="text-sm text-slate-500">Total {attendances.length} data • Foto dihapus otomatis setelah 24 jam</p>
+                    <p className="text-sm text-slate-500">Total {filteredAttendances.length} data (dari {attendances.length})</p>
                 </div>
+
+                <div className="w-full md:w-auto flex flex-wrap gap-2 mb-2 md:mb-0">
+                    <select
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value as any)}
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                        <option value="all">Semua Waktu</option>
+                        <option value="week">7 Hari Terakhir</option>
+                        <option value="month">30 Hari Terakhir</option>
+                        <option value="custom">Pilih Tanggal</option>
+                    </select>
+
+                    {filterType === 'custom' && (
+                        <div className="flex gap-2">
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                            />
+                            <span className="self-center">-</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                            />
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                     <button onClick={runCleanup} className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm">
                         <Trash2 className="w-4 h-4" /> Cleanup

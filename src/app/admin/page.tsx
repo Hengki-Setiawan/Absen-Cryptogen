@@ -9,8 +9,9 @@ import OverviewManager from '@/components/admin/OverviewManager';
 import TaskManager from '@/components/admin/TaskManager';
 import ContentManager from '@/components/admin/ContentManager';
 import StatisticsManager from '@/components/admin/StatisticsManager';
+import QRGenerator from '@/components/admin/QRGenerator';
 
-type TabType = 'overview' | 'statistics' | 'students' | 'schedules' | 'tasks' | 'content' | 'admins';
+type TabType = 'overview' | 'statistics' | 'qr' | 'students' | 'schedules' | 'tasks' | 'content' | 'admins';
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -123,6 +124,7 @@ export default function AdminPage() {
     const tabs: { id: TabType; label: string }[] = [
         { id: 'overview', label: '📊 Overview' },
         { id: 'statistics', label: '📈 Statistik' },
+        { id: 'qr', label: '📱 QR Code' },
         { id: 'students', label: '👨‍🎓 Mahasiswa' },
         { id: 'schedules', label: '📅 Jadwal' },
         { id: 'tasks', label: '📌 Tugas' },
@@ -174,6 +176,7 @@ export default function AdminPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[400px]">
                     {activeTab === 'overview' && <OverviewManager />}
                     {activeTab === 'statistics' && <StatisticsManager />}
+                    {activeTab === 'qr' && <QRGenerator />}
                     {activeTab === 'students' && <StudentManager />}
                     {activeTab === 'schedules' && <ScheduleManager />}
                     {activeTab === 'tasks' && <TaskManager />}

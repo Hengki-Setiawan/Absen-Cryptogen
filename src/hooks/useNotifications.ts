@@ -95,11 +95,17 @@ export function useNotifications() {
 
         const checkInterval = setInterval(() => {
             const upcoming = checkUpcomingClass();
-            if (upcoming) {
+            // Check if we already notified for this class today
+            const lastNotifiedKey = `last-notified-${new Date().toDateString()}`;
+            const lastNotified = localStorage.getItem(lastNotifiedKey);
+
+            if (upcoming && lastNotified !== upcoming.course) {
                 showNotification(
                     `📚 ${upcoming.course}`,
                     `Kelas dimulai pukul ${upcoming.time} di ${upcoming.room}`
                 );
+                // Save that we notified for this course
+                localStorage.setItem(lastNotifiedKey, upcoming.course);
             }
         }, 60000); // Check every minute
 
