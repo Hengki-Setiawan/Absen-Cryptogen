@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Upload, CheckCircle, AlertCircle, Camera, Loader2, WifiOff, RefreshCw } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import imageCompression from 'browser-image-compression';
@@ -40,6 +41,16 @@ export default function AbsenPage() {
     const [studentInput, setStudentInput] = useState('');
     const [selectedCourse, setSelectedCourse] = useState('');
     const [courseInput, setCourseInput] = useState('');
+    const router = useRouter();
+
+    // Check auth
+    useEffect(() => {
+        const session = localStorage.getItem('user_session');
+        if (!session) {
+            router.push('/login');
+        }
+    }, [router]);
+
     const [attendanceDate, setAttendanceDate] = useState(() => {
         // Use WITA (UTC+8) date
         const now = new Date();
