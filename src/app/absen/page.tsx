@@ -95,8 +95,22 @@ export default function AbsenPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedStudent || !selectedCourse || !attendanceDate || !file) {
-            setErrorMessage('Mohon lengkapi semua data wajib!');
+
+        // Validate all required fields with specific messages
+        if (!selectedStudent) {
+            setErrorMessage('Mohon pilih nama mahasiswa dari daftar yang tersedia.');
+            return;
+        }
+        if (!selectedCourse) {
+            setErrorMessage('Mohon pilih mata kuliah dari daftar yang tersedia.');
+            return;
+        }
+        if (!attendanceDate) {
+            setErrorMessage('Mohon pilih tanggal absensi.');
+            return;
+        }
+        if (!file) {
+            setErrorMessage('Mohon upload bukti kehadiran (foto).');
             return;
         }
 
@@ -207,7 +221,8 @@ export default function AbsenPage() {
                                             );
                                             setSelectedStudent(matchedStudent ? matchedStudent.id : '');
                                         }}
-                                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                                        className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white ${selectedStudent ? 'border-green-500' : studentInput ? 'border-red-300' : 'border-slate-300'
+                                            }`}
                                         placeholder="Ketik atau pilih nama..."
                                         required
                                     />
@@ -236,7 +251,8 @@ export default function AbsenPage() {
                                             );
                                             setSelectedCourse(matchedCourse ? matchedCourse.id : '');
                                         }}
-                                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                                        className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white ${selectedCourse ? 'border-green-500' : courseInput ? 'border-red-300' : 'border-slate-300'
+                                            }`}
                                         placeholder="Ketik atau pilih mata kuliah..."
                                         required
                                     />
