@@ -7,10 +7,13 @@ import imageCompression from 'browser-image-compression';
 import Image from 'next/image';
 
 // Initialize Supabase Client (Client-side)
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Create client only if env vars are available
+const supabase = supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
 
 type Student = {
     id: string;
@@ -118,6 +121,11 @@ export default function AbsenPage() {
         setErrorMessage('');
 
         try {
+            // Check if Supabase is configured
+            if (!supabase) {
+                throw new Error('Supabase tidak terkonfigurasi. Hubungi administrator.');
+            }
+
             // 1. Upload Image to Supabase
             const fileExt = file.name.split('.').pop();
             const fileName = `${selectedStudent}/${Date.now()}.${fileExt}`;
