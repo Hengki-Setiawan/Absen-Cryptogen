@@ -10,7 +10,13 @@ export default function NotificationBanner() {
     const [upcomingClass, setUpcomingClass] = useState<any>(null);
 
     useEffect(() => {
-        // Check if we should show permission request banner
+        // Check if user has already dismissed the banner or granted permission
+        const dismissed = localStorage.getItem('notification-banner-dismissed');
+        if (dismissed === 'true' || permission === 'granted') {
+            setShowBanner(false);
+            return;
+        }
+        // Show banner only if permission is 'default' (not yet asked)
         if (permission === 'default') {
             setShowBanner(true);
         }
@@ -27,8 +33,16 @@ export default function NotificationBanner() {
     const handleEnableNotifications = async () => {
         const granted = await requestPermission();
         if (granted) {
+            // User enabled notifications, remember this
+            localStorage.setItem('notification-banner-dismissed', 'true');
             setShowBanner(false);
         }
+    };
+
+    const handleDismiss = () => {
+        // User clicked "Nanti", remember this so we don't ask again
+        localStorage.setItem('notification-banner-dismissed', 'true');
+        setShowBanner(false);
     };
 
     if (!showBanner && !upcomingClass) return null;
@@ -50,14 +64,14 @@ export default function NotificationBanner() {
                                 Aktifkan
                             </button>
                             <button
-                                onClick={() => setShowBanner(false)}
+                                onClick={handleDismiss}
                                 className="px-3 py-1 bg-white/20 text-white text-xs rounded-lg hover:bg-white/30"
                             >
                                 Nanti
                             </button>
                         </div>
                     </div>
-                    <button onClick={() => setShowBanner(false)}>
+                    <button onClick={handleDismiss}>
                         <X className="w-4 h-4 opacity-70 hover:opacity-100" />
                     </button>
                 </div>

@@ -4,18 +4,15 @@ import { db, generateId } from '@/lib/db';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { studentId, courseId, meetingNumber, status, notes, photoUrl, timestamp } = body;
+        const { studentId, courseId, attendanceDate, status, notes, photoUrl, timestamp } = body;
 
         // Validate required fields
-        if (!studentId || !courseId || !meetingNumber || !status || !photoUrl) {
+        if (!studentId || !courseId || !attendanceDate || !status || !photoUrl) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
         // Insert into attendances table
-        // Note: courseId here is actually the SCHEDULE ID from the dropdown?
-        // Let's double check the dropdown logic.
-        // The dropdown in page.tsx uses `c.id` which comes from `SELECT id ... FROM schedules`.
-        // So `courseId` in the body is `schedule_id`.
+        // Note: courseId here is actually the SCHEDULE ID from the dropdown.
         // We need to fetch the real `course_id` from the `schedules` table.
 
         const scheduleResult = await db.execute({
@@ -32,18 +29,18 @@ export async function POST(request: Request) {
 
         await db.execute({
             sql: `INSERT INTO attendances (
-        id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url, meeting_number
-      ) VALUES (?, ?, ?, ?, DATE('now'), ?, ?, ?, ?, ?)`,
+        id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
                 attendanceId,
                 studentId,
                 realCourseId,
                 courseId, // schedule_id
+                attendanceDate, // attendance_date from form
                 timestamp, // check_in_time
                 status,
                 notes || '',
-                photoUrl,
-                meetingNumber
+                photoUrl
             ]
         });
 

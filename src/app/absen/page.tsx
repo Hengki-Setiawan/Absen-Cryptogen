@@ -33,8 +33,12 @@ export default function AbsenPage() {
     const [isLoadingData, setIsLoadingData] = useState(true);
 
     const [selectedStudent, setSelectedStudent] = useState('');
+    const [studentInput, setStudentInput] = useState('');
     const [selectedCourse, setSelectedCourse] = useState('');
-    const [meetingNumber, setMeetingNumber] = useState('');
+    const [courseInput, setCourseInput] = useState('');
+    const [attendanceDate, setAttendanceDate] = useState(() => {
+        return new Date().toISOString().split('T')[0];
+    });
     const [status, setStatus] = useState('hadir');
     const [notes, setNotes] = useState('');
     const [file, setFile] = useState<File | null>(null);
@@ -91,7 +95,7 @@ export default function AbsenPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedStudent || !selectedCourse || !meetingNumber || !file) {
+        if (!selectedStudent || !selectedCourse || !attendanceDate || !file) {
             setErrorMessage('Mohon lengkapi semua data wajib!');
             return;
         }
@@ -120,7 +124,7 @@ export default function AbsenPage() {
                 body: JSON.stringify({
                     studentId: selectedStudent,
                     courseId: selectedCourse,
-                    meetingNumber: parseInt(meetingNumber),
+                    attendanceDate: attendanceDate,
                     status,
                     notes,
                     photoUrl: publicUrl,
@@ -190,17 +194,28 @@ export default function AbsenPage() {
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
                                         Nama Mahasiswa <span className="text-red-500">*</span>
                                     </label>
-                                    <select
-                                        value={selectedStudent}
-                                        onChange={(e) => setSelectedStudent(e.target.value)}
+                                    <input
+                                        list="students-list"
+                                        value={studentInput}
+                                        onChange={(e) => {
+                                            const inputValue = e.target.value;
+                                            setStudentInput(inputValue);
+                                            // Find matching student by name or NIM
+                                            const matchedStudent = students.find(
+                                                (s) => `${s.full_name} (${s.nim})` === inputValue ||
+                                                    s.full_name === inputValue
+                                            );
+                                            setSelectedStudent(matchedStudent ? matchedStudent.id : '');
+                                        }}
                                         className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                                        placeholder="Ketik atau pilih nama..."
                                         required
-                                    >
-                                        <option value="">Pilih Nama Anda...</option>
+                                    />
+                                    <datalist id="students-list">
                                         {students.map((s) => (
-                                            <option key={s.id} value={s.id}>{s.full_name} ({s.nim})</option>
+                                            <option key={s.id} value={`${s.full_name} (${s.nim})`} />
                                         ))}
-                                    </select>
+                                    </datalist>
                                 </div>
 
                                 {/* Mata Kuliah */}
@@ -208,32 +223,40 @@ export default function AbsenPage() {
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
                                         Mata Kuliah <span className="text-red-500">*</span>
                                     </label>
-                                    <select
-                                        value={selectedCourse}
-                                        onChange={(e) => setSelectedCourse(e.target.value)}
+                                    <input
+                                        list="courses-list"
+                                        value={courseInput}
+                                        onChange={(e) => {
+                                            const inputValue = e.target.value;
+                                            setCourseInput(inputValue);
+                                            // Find matching course
+                                            const matchedCourse = courses.find(
+                                                (c) => `${c.name} - ${c.day} (${c.start_time})` === inputValue ||
+                                                    c.name === inputValue
+                                            );
+                                            setSelectedCourse(matchedCourse ? matchedCourse.id : '');
+                                        }}
                                         className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                                        placeholder="Ketik atau pilih mata kuliah..."
                                         required
-                                    >
-                                        <option value="">Pilih Mata Kuliah...</option>
+                                    />
+                                    <datalist id="courses-list">
                                         {courses.map((c) => (
-                                            <option key={c.id} value={c.id}>{c.name} - {c.day} ({c.start_time})</option>
+                                            <option key={c.id} value={`${c.name} - ${c.day} (${c.start_time})`} />
                                         ))}
-                                    </select>
+                                    </datalist>
                                 </div>
 
-                                {/* Pertemuan Ke */}
+                                {/* Tanggal Absensi */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Pertemuan Ke- <span className="text-red-500">*</span>
+                                        Tanggal <span className="text-red-500">*</span>
                                     </label>
                                     <input
-                                        type="number"
-                                        min="1"
-                                        max="16"
-                                        value={meetingNumber}
-                                        onChange={(e) => setMeetingNumber(e.target.value)}
+                                        type="date"
+                                        value={attendanceDate}
+                                        onChange={(e) => setAttendanceDate(e.target.value)}
                                         className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                        placeholder="Contoh: 1"
                                         required
                                     />
                                 </div>
