@@ -14,6 +14,7 @@ type Schedule = {
 export default function QRGenerator() {
     const [schedules, setSchedules] = useState<Schedule[]>([]);
     const [selectedSchedule, setSelectedSchedule] = useState('');
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [qrUrl, setQrUrl] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -35,8 +36,8 @@ export default function QRGenerator() {
         const data = {
             sid: schedule.id, // schedule id
             cn: schedule.course, // course name
-            d: new Date().toISOString().split('T')[0], // date
-            exp: Date.now() + 10 * 60 * 1000 // expires in 10 mins
+            d: selectedDate, // selected date
+            exp: Date.now() + 24 * 60 * 60 * 1000 // expires in 24 hours
         };
 
         // Base64 encode
@@ -75,28 +76,42 @@ export default function QRGenerator() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6">
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Pilih Mata Kuliah</label>
-                        <select
-                            value={selectedSchedule}
-                            onChange={(e) => {
-                                setSelectedSchedule(e.target.value);
-                                setQrUrl('');
-                            }}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            <option value="">-- Pilih Jadwal --</option>
-                            {schedules.map(s => (
-                                <option key={s.id} value={s.id}>
-                                    {s.course} - {s.day} ({s.startTime})
-                                </option>
-                            ))}
-                        </select>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Pilih Mata Kuliah</label>
+                            <select
+                                value={selectedSchedule}
+                                onChange={(e) => {
+                                    setSelectedSchedule(e.target.value);
+                                    setQrUrl('');
+                                }}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="">-- Pilih Jadwal --</option>
+                                {schedules.map(s => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.course} - {s.day} ({s.startTime})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Tanggal Absen</label>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => {
+                                    setSelectedDate(e.target.value);
+                                    setQrUrl('');
+                                }}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
                     </div>
 
                     <button
                         onClick={generateQR}
-                        disabled={!selectedSchedule}
+                        disabled={!selectedSchedule || !selectedDate}
                         className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         <QrCode className="w-4 h-4" /> Generate QR Code
@@ -111,7 +126,9 @@ export default function QRGenerator() {
 
                         <div className="mt-4 text-center">
                             <p className="text-sm font-medium text-slate-900">Scan untuk Absen</p>
-                            <p className="text-xs text-slate-500">QR Code valid untuk hari ini</p>
+                            <p className="text-xs text-slate-500">
+                                Valid untuk tanggal: <b>{new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</b>
+                            </p>
                         </div>
 
                         <button
