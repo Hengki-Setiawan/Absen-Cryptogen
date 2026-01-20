@@ -121,32 +121,53 @@ export default function AbsenPage() {
             // 1. Upload Image to Supabase
             const fileExt = file.name.split('.').pop();
             const fileName = `${selectedStudent}/${Date.now()}.${fileExt}`;
-            const { error: uploadError } = await supabase.storage
-                .from('attendance-photos')
-                .upload(fileName, file);
 
-            if (uploadError) throw uploadError;
+            let uploadError;
+            try {
+                const result = await supabase.storage
+                    .from('attendance-photos')
+                    .upload(fileName, file);
+                uploadError = result.error;
+            } catch (e) {
+                console.error('Supabase upload exception:', e);
+                throw new Error('Gagal mengupload foto ke server. Periksa koneksi internet Anda.');
+            }
+
+            if (uploadError) {
+                console.error('Supabase upload error:', uploadError);
+                throw new Error(`Gagal mengupload foto: ${uploadError.message}`);
+            }
 
             const { data: { publicUrl } } = supabase.storage
                 .from('attendance-photos')
                 .getPublicUrl(fileName);
 
             // 2. Submit Data to API
-            const response = await fetch('/api/attendance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    studentId: selectedStudent,
-                    courseId: selectedCourse,
-                    attendanceDate: attendanceDate,
-                    status,
-                    notes,
-                    photoUrl: publicUrl,
-                    timestamp: new Date().toISOString()
-                }),
-            });
+            let response;
+            try {
+                response = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentId: selectedStudent,
+                        courseId: selectedCourse,
+                        attendanceDate: attendanceDate,
+                        status,
+                        notes,
+                        photoUrl: publicUrl,
+                        timestamp: new Date().toISOString()
+                    }),
+                });
+            } catch (e) {
+                console.error('API fetch exception:', e);
+                throw new Error('Gagal menghubungi server. Periksa koneksi internet Anda.');
+            }
 
-            if (!response.ok) throw new Error('Gagal menyimpan data absensi');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('API response error:', response.status, errorData);
+                throw new Error(errorData.error || 'Gagal menyimpan data absensi');
+            }
 
             setSubmitStatus('success');
         } catch (error: unknown) {
