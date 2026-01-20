@@ -108,6 +108,19 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Password Requests table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS password_requests (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        nim TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'rejected')),
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     // Tasks table
     await db.execute(`
       CREATE TABLE IF NOT EXISTS tasks (

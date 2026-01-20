@@ -56,6 +56,7 @@ export default function AbsenPage() {
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isCompressing, setIsCompressing] = useState(false);
+    const [isQrSubmission, setIsQrSubmission] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error' | 'offline-saved'>('idle');
@@ -206,12 +207,14 @@ export default function AbsenPage() {
         fetchData();
     }, []);
 
-    // Handle QR Token
+    // Handle QR Token & Auto Attendance
     useEffect(() => {
         if (courses.length === 0) return;
 
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
+        const userSession = localStorage.getItem('user_session');
+        const user = userSession ? JSON.parse(userSession) : null;
 
         if (token) {
             try {
@@ -235,11 +238,60 @@ export default function AbsenPage() {
                 if (data.d) {
                     setAttendanceDate(data.d);
                 }
+
+                // AUTO ATTENDANCE if Logged In
+                if (user && user.role === 'student') {
+                    // Auto-fill student info
+                    setSelectedStudent(user.id);
+                    setStudentInput(`${user.name} (${user.nim})`);
+
+                    // Auto Submit
+                    if (course && data.d) {
+                        handleAutoSubmit(user.id, course.id, data.d);
+                    }
+                }
+
             } catch (e) {
                 console.error('Invalid token', e);
             }
+        } else if (user && user.role === 'student') {
+            // Just auto-fill if no token but logged in
+            setSelectedStudent(user.id);
+            setStudentInput(`${user.name} (${user.nim})`);
         }
     }, [courses]);
+
+    const handleAutoSubmit = async (studentId: string, courseId: string, date: string) => {
+        setIsSubmitting(true);
+        try {
+            // Check if already present? (Optional optimization)
+
+            // Submit without photo (QR privilege)
+            const res = await fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    studentId,
+                    courseId,
+                    attendanceDate: date,
+                    status: 'hadir',
+                    notes: 'Auto-attendance via QR',
+                    photoUrl: null, // No photo needed for QR
+                    timestamp: new Date().toISOString(),
+                    isQr: true // Flag to bypass photo check in API if needed
+                }),
+            });
+
+            if (!res.ok) throw new Error('Auto-attendance failed');
+
+            setSubmitStatus('success');
+        } catch (error) {
+            console.error('Auto submit error:', error);
+            setErrorMessage('Gagal absen otomatis. Silakan absen manual.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -282,7 +334,7 @@ export default function AbsenPage() {
             setErrorMessage('Mohon pilih tanggal absensi.');
             return;
         }
-        if (!file) {
+        if (!file && !isQrSubmission) {
             setErrorMessage('Mohon upload bukti kehadiran (foto).');
             return;
         }
@@ -318,29 +370,37 @@ export default function AbsenPage() {
                 throw new Error('Supabase tidak terkonfigurasi. Hubungi administrator.');
             }
 
-            // 1. Upload Image to Supabase
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${selectedStudent}/${Date.now()}.${fileExt}`;
+            // 1. Upload Image to Supabase (Only if not QR auto-submission)
+            let publicUrl = null;
 
-            let uploadError;
-            try {
-                const result = await supabase.storage
+            if (!isQrSubmission && file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${selectedStudent}/${Date.now()}.${fileExt}`;
+
+                let uploadError;
+                try {
+                    const result = await supabase.storage
+                        .from('attendance-photos')
+                        .upload(fileName, file);
+                    uploadError = result.error;
+                } catch (e) {
+                    console.error('Supabase upload exception:', e);
+                    throw new Error('Gagal mengupload foto ke server. Periksa koneksi internet Anda.');
+                }
+
+                if (uploadError) {
+                    console.error('Supabase upload error:', uploadError);
+                    throw new Error(`Gagal mengupload foto: ${uploadError.message}`);
+                }
+
+                const { data } = supabase.storage
                     .from('attendance-photos')
-                    .upload(fileName, file);
-                uploadError = result.error;
-            } catch (e) {
-                console.error('Supabase upload exception:', e);
-                throw new Error('Gagal mengupload foto ke server. Periksa koneksi internet Anda.');
-            }
+                    .getPublicUrl(fileName);
 
-            if (uploadError) {
-                console.error('Supabase upload error:', uploadError);
-                throw new Error(`Gagal mengupload foto: ${uploadError.message}`);
+                publicUrl = data.publicUrl;
+            } else if (!isQrSubmission && !file) {
+                throw new Error('Mohon upload bukti kehadiran (foto).');
             }
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('attendance-photos')
-                .getPublicUrl(fileName);
 
             // 2. Submit Data to API
             let response;

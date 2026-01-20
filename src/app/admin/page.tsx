@@ -11,8 +11,9 @@ import ContentManager from '@/components/admin/ContentManager';
 import StatisticsManager from '@/components/admin/StatisticsManager';
 import QRGenerator from '@/components/admin/QRGenerator';
 import BlogManager from '@/components/admin/BlogManager';
+import PasswordRequests from '@/components/admin/PasswordRequests';
 
-type TabType = 'overview' | 'statistics' | 'qr' | 'students' | 'schedules' | 'tasks' | 'blog' | 'content' | 'admins';
+type TabType = 'overview' | 'statistics' | 'qr' | 'students' | 'schedules' | 'tasks' | 'blog' | 'content' | 'requests' | 'admins';
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -131,6 +132,7 @@ export default function AdminPage() {
         { id: 'tasks', label: '📌 Tugas' },
         { id: 'blog', label: '📢 Blog' },
         { id: 'content', label: '📝 Konten' },
+        { id: 'requests', label: '🔑 Reset Password' },
         { id: 'admins', label: '🔐 Admin' },
     ];
 
@@ -184,6 +186,7 @@ export default function AdminPage() {
                     {activeTab === 'tasks' && <TaskManager />}
                     {activeTab === 'blog' && <BlogManager />}
                     {activeTab === 'content' && <ContentManager />}
+                    {activeTab === 'requests' && <PasswordRequests />}
                     {activeTab === 'admins' && <AdminManager />}
                 </div>
             </div>

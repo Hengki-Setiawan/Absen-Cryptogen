@@ -10,7 +10,7 @@ export async function POST(request: Request) {
         }
 
         const result = await db.execute({
-            sql: "SELECT id, full_name, role, username FROM users WHERE username = ? AND password = ? AND role = 'admin'",
+            sql: "SELECT id, full_name, role, username, nim FROM users WHERE username = ? AND password = ?",
             args: [username, password]
         });
 
@@ -26,7 +26,8 @@ export async function POST(request: Request) {
                 id: user.id,
                 name: user.full_name,
                 role: user.role,
-                username: user.username
+                username: user.username,
+                nim: user.nim
             }
         });
 
