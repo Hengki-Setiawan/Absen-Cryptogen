@@ -16,6 +16,35 @@ export default function RegisterPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const [isCheckingNim, setIsCheckingNim] = useState(false);
+
+    const checkNim = async (nim: string) => {
+        if (!nim || nim.length < 5) return;
+
+        setIsCheckingNim(true);
+        try {
+            const res = await fetch(`/api/auth/check-nim?nim=${nim}`);
+            const data = await res.json();
+
+            if (data.exists) {
+                if (data.is_registered) {
+                    setError('NIM ini sudah terdaftar. Silakan login.');
+                } else {
+                    setFormData(prev => ({ ...prev, full_name: data.full_name }));
+                    setError('');
+                }
+            } else {
+                // New student, clear name if it was auto-filled? 
+                // Or keep it to allow user to type. Let's keep it but clear error.
+                setError('');
+            }
+        } catch (error) {
+            console.error('Error checking NIM:', error);
+        } finally {
+            setIsCheckingNim(false);
+        }
+    };
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -69,10 +98,16 @@ export default function RegisterPage() {
                                     type="text"
                                     value={formData.nim}
                                     onChange={(e) => setFormData({ ...formData, nim: e.target.value })}
+                                    onBlur={(e) => checkNim(e.target.value)}
                                     className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                                     placeholder="Contoh: 230907501001"
                                     required
                                 />
+                                {isCheckingNim && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Pencil, Trash2, Search, X, Save, Loader2, Upload, Camera } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, Save, Loader2, Upload, Camera, LogIn } from 'lucide-react';
 import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import imageCompression from 'browser-image-compression';
@@ -243,6 +243,31 @@ export default function StudentManager() {
                                     </td>
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm(`Login sebagai ${student.full_name}?`)) return;
+                                                    try {
+                                                        const res = await fetch('/api/admin/impersonate', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ userId: student.id })
+                                                        });
+                                                        const data = await res.json();
+                                                        if (data.success) {
+                                                            localStorage.setItem('user_session', JSON.stringify(data.user));
+                                                            window.location.href = '/absen';
+                                                        } else {
+                                                            alert('Gagal login: ' + data.error);
+                                                        }
+                                                    } catch (e) {
+                                                        alert('Terjadi kesalahan saat login');
+                                                    }
+                                                }}
+                                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                                                title="Login sebagai mahasiswa ini"
+                                            >
+                                                <LogIn className="w-4 h-4" />
+                                            </button>
                                             <button
                                                 onClick={() => openModal(student)}
                                                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
