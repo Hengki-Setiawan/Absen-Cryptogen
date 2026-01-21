@@ -71,7 +71,7 @@ export default function NFCScanner() {
             if (!schedule) return;
 
             // Get admin user from localStorage
-            const userSession = localStorage.getItem('user_session');
+            const userSession = localStorage.getItem('admin_user');
             if (!userSession) {
                 alert('Session tidak ditemukan. Silakan login kembali.');
                 return;
