@@ -34,6 +34,7 @@ export default function StudentAccountManager() {
         fetchData();
     }, []);
 
+
     async function fetchData() {
         setIsLoading(true);
         try {
@@ -43,15 +44,31 @@ export default function StudentAccountManager() {
             setStudents(studentsData);
 
             // Fetch NFC cards
-            const nfcRes = await fetch('/api/nfc/cards');
-            const nfcData = await nfcRes.json();
+            try {
+                const nfcRes = await fetch('/api/nfc/cards');
+                if (nfcRes.ok) {
+                    const nfcData = await nfcRes.json();
 
-            // Map NFC cards by user_id for easy lookup
-            const nfcMap: Record<string, NFCCard> = {};
-            nfcData.forEach((card: NFCCard) => {
-                nfcMap[card.user_id] = card;
-            });
-            setNfcCards(nfcMap);
+                    // Check if nfcData is an array
+                    if (Array.isArray(nfcData)) {
+                        // Map NFC cards by user_id for easy lookup
+                        const nfcMap: Record<string, NFCCard> = {};
+                        nfcData.forEach((card: NFCCard) => {
+                            nfcMap[card.user_id] = card;
+                        });
+                        setNfcCards(nfcMap);
+                    } else {
+                        console.warn('NFC cards data is not an array:', nfcData);
+                        setNfcCards({});
+                    }
+                } else {
+                    console.warn('Failed to fetch NFC cards:', nfcRes.status);
+                    setNfcCards({});
+                }
+            } catch (nfcError) {
+                console.error('Error fetching NFC cards:', nfcError);
+                setNfcCards({});
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
