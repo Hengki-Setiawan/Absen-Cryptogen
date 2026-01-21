@@ -305,7 +305,8 @@ export default function AbsenPage() {
                     timestamp: new Date().toISOString(),
                     isQr: true, // Flag to bypass photo check in API if needed
                     latitude: currentLoc?.lat,
-                    longitude: currentLoc?.long
+                    longitude: currentLoc?.long,
+                    accuracy: currentLoc?.accuracy
                 }),
             });
 
@@ -345,12 +346,12 @@ export default function AbsenPage() {
         }
     };
 
-    const [location, setLocation] = useState<{ lat: number; long: number } | null>(null);
+    const [location, setLocation] = useState<{ lat: number; long: number; accuracy: number; isMock: boolean } | null>(null);
     const [locationError, setLocationError] = useState('');
 
     // Get location on mount or before submit
     const getLocation = () => {
-        return new Promise<{ lat: number; long: number }>((resolve, reject) => {
+        return new Promise<{ lat: number; long: number; accuracy: number; isMock: boolean }>((resolve, reject) => {
             if (!navigator.geolocation) {
                 reject(new Error('Geolocation is not supported by your browser'));
                 return;
@@ -358,9 +359,16 @@ export default function AbsenPage() {
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    const { latitude, longitude, accuracy } = position.coords;
+                    // Basic Mock Location Detection
+                    // Accuracy 0 is suspicious.
+                    const isMock = accuracy === 0;
+
                     resolve({
-                        lat: position.coords.latitude,
-                        long: position.coords.longitude
+                        lat: latitude,
+                        long: longitude,
+                        accuracy,
+                        isMock
                     });
                 },
                 (error) => {
@@ -414,6 +422,12 @@ export default function AbsenPage() {
         try {
             currentLoc = await getLocation();
             setLocation(currentLoc);
+
+            if (currentLoc.isMock) {
+                setErrorMessage('Terdeteksi penggunaan Lokasi Palsu (Mock Location). Mohon matikan Fake GPS.');
+                setIsSubmitting(false);
+                return;
+            }
         } catch (error: any) {
             console.error('Location error:', error);
             // We can decide whether to block submission or just warn
@@ -500,7 +514,8 @@ export default function AbsenPage() {
                         photoUrl: publicUrl,
                         timestamp: new Date().toISOString(),
                         latitude: currentLoc?.lat,
-                        longitude: currentLoc?.long
+                        longitude: currentLoc?.long,
+                        accuracy: currentLoc?.accuracy
                     }),
                 });
             } catch (e) {

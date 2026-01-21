@@ -58,6 +58,8 @@ export async function POST(request: Request) {
 
         const attendanceId = generateId();
 
+        const serverTimestamp = new Date().toISOString();
+
         await db.execute({
             sql: `INSERT INTO attendances (
         id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url, latitude, longitude, address
@@ -67,8 +69,8 @@ export async function POST(request: Request) {
                 studentId,
                 realCourseId,
                 courseId, // schedule_id
-                attendanceDate, // attendance_date from form
-                timestamp, // check_in_time
+                attendanceDate, // attendance_date from form (Schedule Date)
+                serverTimestamp, // check_in_time (Server Time - Secure)
                 status,
                 notes || '',
                 photoUrl || (isQr ? 'QR_SUBMISSION' : null),

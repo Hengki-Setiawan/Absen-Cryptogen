@@ -97,18 +97,22 @@ export default function OverviewManager() {
     const handleExportExcel = () => {
         setIsExporting(true);
         try {
-            const exportData = attendances.map((a, index) => ({
-                'No': index + 1,
-                'Tanggal': a.attendance_date,
-                'Waktu': a.check_in_time,
-                'NIM': a.nim,
-                'Nama Mahasiswa': a.student_name,
-                'Mata Kuliah': a.course_name,
-                'Status': a.status,
-                'Keterangan': a.notes || '-',
-                'Lokasi': a.address || '-',
-                'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
-            }));
+            const exportData = attendances.map((a, index) => {
+                const checkInDate = new Date(a.check_in_time);
+                return {
+                    'No': index + 1,
+                    'Jadwal Kuliah': a.attendance_date, // Tanggal sesuai jadwal
+                    'Tanggal Scan': checkInDate.toLocaleDateString('id-ID'), // Tanggal aktual absen
+                    'Jam Scan': checkInDate.toLocaleTimeString('id-ID'), // Jam aktual absen
+                    'NIM': a.nim,
+                    'Nama Mahasiswa': a.student_name,
+                    'Mata Kuliah': a.course_name,
+                    'Status': a.status,
+                    'Keterangan': a.notes || '-',
+                    'Lokasi': a.address || '-',
+                    'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
+                };
+            });
 
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
