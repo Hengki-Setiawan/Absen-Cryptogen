@@ -6,6 +6,7 @@ export async function GET() {
         const result = await db.execute(`
       SELECT 
         s.id,
+        s.course_id,
         c.name as course,
         c.lecturer,
         s.day,
