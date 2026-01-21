@@ -13,6 +13,7 @@ export async function GET() {
         a.photo_url,
         a.latitude,
         a.longitude,
+        a.address,
         u.nim,
         u.full_name as student_name,
         c.name as course_name,

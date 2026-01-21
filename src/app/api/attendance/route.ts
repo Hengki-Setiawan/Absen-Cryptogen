@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, generateId } from '@/lib/db';
+import { getAddressFromCoordinates } from '@/lib/geocoding';
 
 export async function POST(request: Request) {
     try {
@@ -20,8 +21,15 @@ export async function POST(request: Request) {
         try {
             await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`);
             await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`);
+            await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`);
         } catch (e: any) {
             // Ignore error if columns already exist
+        }
+
+        // Get Address if location is provided
+        let address = null;
+        if (latitude && longitude) {
+            address = await getAddressFromCoordinates(latitude, longitude);
         }
 
         // Insert into attendances table
@@ -56,8 +64,8 @@ export async function POST(request: Request) {
 
         await db.execute({
             sql: `INSERT INTO attendances (
-        id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url, latitude, longitude
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url, latitude, longitude, address
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
                 attendanceId,
                 studentId,
@@ -69,11 +77,12 @@ export async function POST(request: Request) {
                 notes || '',
                 photoUrl || (isQr ? 'QR_SUBMISSION' : null),
                 latitude || null,
-                longitude || null
+                longitude || null,
+                address || null
             ]
         });
 
-        return NextResponse.json({ success: true, id: attendanceId });
+        return NextResponse.json({ success: true, id: attendanceId, address });
     } catch (error) {
         console.error('Attendance submission error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

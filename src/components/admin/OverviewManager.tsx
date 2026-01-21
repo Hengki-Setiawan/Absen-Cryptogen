@@ -17,6 +17,7 @@ type Attendance = {
     course_code: string;
     latitude?: number;
     longitude?: number;
+    address?: string;
 };
 
 type GroupedData = {
@@ -105,6 +106,7 @@ export default function OverviewManager() {
                 'Mata Kuliah': a.course_name,
                 'Status': a.status,
                 'Keterangan': a.notes || '-',
+                'Lokasi': a.address || '-',
                 'Latitude': a.latitude || '-',
                 'Longitude': a.longitude || '-',
                 'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
@@ -133,6 +135,7 @@ export default function OverviewManager() {
                 'Waktu Absen': a.check_in_time,
                 'Status': a.status?.toUpperCase() || 'HADIR',
                 'Keterangan': a.notes || '-',
+                'Lokasi': a.address || '-',
                 'Latitude': a.latitude || '-',
                 'Longitude': a.longitude || '-',
                 'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'

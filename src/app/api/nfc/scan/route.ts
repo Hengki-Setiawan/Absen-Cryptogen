@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, generateId } from '@/lib/db';
+import { getAddressFromCoordinates } from '@/lib/geocoding';
 
 // POST - Process NFC card scan (auto-login + auto-attend)
 export async function POST(req: NextRequest) {
@@ -15,8 +16,15 @@ export async function POST(req: NextRequest) {
         try {
             await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`);
             await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`);
+            await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`);
         } catch (e: any) {
             // Ignore error if columns already exist
+        }
+
+        // Get Address if location is provided
+        let address = null;
+        if (latitude && longitude) {
+            address = await getAddressFromCoordinates(latitude, longitude);
         }
 
         // Find NFC card by short ID
@@ -79,9 +87,9 @@ export async function POST(req: NextRequest) {
                 // Record attendance
                 const attendanceId = generateId();
                 await db.execute({
-                    sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time, latitude, longitude)
-                          VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'), ?, ?)`,
-                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date, latitude || null, longitude || null]
+                    sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time, latitude, longitude, address)
+                          VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'), ?, ?, ?)`,
+                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date, latitude || null, longitude || null, address || null]
                 });
 
                 attendanceResults.push({
@@ -105,7 +113,8 @@ export async function POST(req: NextRequest) {
             success: true,
             student,
             attendanceResults,
-            hasActiveSessions: sessionsResult.rows.length > 0
+            hasActiveSessions: sessionsResult.rows.length > 0,
+            address
         });
     } catch (error: any) {
         console.error('Error processing NFC scan:', error);
