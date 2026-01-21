@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
                     sql: `SELECT * FROM attendances 
                           WHERE user_id = ? 
                           AND schedule_id = ? 
-                          AND date = ?`,
+                          AND attendance_date = ?`,
                     args: [student.id, session.schedule_id, session.attendance_date]
                 });
 
@@ -71,9 +71,9 @@ export async function POST(req: NextRequest) {
                 // Record attendance
                 const attendanceId = generateId();
                 await db.execute({
-                    sql: `INSERT INTO attendances (id, user_id, schedule_id, status, date, check_in_time, method)
-                          VALUES (?, ?, ?, 'hadir', ?, datetime('now'), 'nfc')`,
-                    args: [attendanceId, student.id, session.schedule_id, session.attendance_date]
+                    sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time)
+                          VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'))`,
+                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date]
                 });
 
                 attendanceResults.push({
