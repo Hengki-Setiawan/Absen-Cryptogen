@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LogIn, Link as LinkIcon, Copy, Check, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { LogIn, Link as LinkIcon, Copy, Check, Loader2, Eye, EyeOff, RefreshCw, Search } from 'lucide-react';
 
 type Student = {
     id: string;
@@ -28,6 +28,7 @@ export default function StudentAccountManager() {
     const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
     const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
     const [generatingNFC, setGeneratingNFC] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -112,6 +113,13 @@ export default function StudentAccountManager() {
         setShowPasswords(prev => ({ ...prev, [studentId]: !prev[studentId] }));
     };
 
+    // Filter students based on search term
+    const filteredStudents = students.filter(student =>
+        student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.nim.includes(searchTerm) ||
+        (student.username && student.username.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -119,12 +127,24 @@ export default function StudentAccountManager() {
                     <h3 className="text-lg font-bold text-slate-700">Manajemen Akun & NFC</h3>
                     <p className="text-sm text-slate-500">Kelola akun mahasiswa dan kartu NFC</p>
                 </div>
-                <button
-                    onClick={fetchData}
-                    className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-                >
-                    <RefreshCw className="w-4 h-4" /> Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari mahasiswa..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none w-64"
+                        />
+                    </div>
+                    <button
+                        onClick={fetchData}
+                        className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                    >
+                        <RefreshCw className="w-4 h-4" /> Refresh
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -143,10 +163,12 @@ export default function StudentAccountManager() {
                         <tbody className="divide-y divide-slate-100">
                             {isLoading ? (
                                 <tr><td colSpan={6} className="p-8 text-center">Memuat...</td></tr>
-                            ) : students.length === 0 ? (
-                                <tr><td colSpan={6} className="p-8 text-center text-slate-500">Tidak ada data</td></tr>
+                            ) : filteredStudents.length === 0 ? (
+                                <tr><td colSpan={6} className="p-8 text-center text-slate-500">
+                                    {searchTerm ? 'Tidak ada mahasiswa yang cocok dengan pencarian' : 'Tidak ada data'}
+                                </td></tr>
                             ) : (
-                                students.map(student => {
+                                filteredStudents.map(student => {
                                     const nfcCard = nfcCards[student.id];
                                     const showPassword = showPasswords[student.id];
 

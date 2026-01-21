@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { userId, nim } = body;
 
+        console.log('NFC Card Generation Request:', { userId, nim });
+
         if (!userId || !nim) {
             return NextResponse.json({ error: 'userId and nim are required' }, { status: 400 });
         }
@@ -62,6 +64,8 @@ export async function POST(req: NextRequest) {
         const domain = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
         const nfcUrl = `${domain}/nfc-attend?token=${nfcToken}`;
 
+        console.log('Generated NFC URL:', nfcUrl);
+
         // Insert into database
         await db.execute({
             sql: `INSERT INTO nfc_cards (id, user_id, nim, nfc_url, is_active) 
@@ -69,14 +73,19 @@ export async function POST(req: NextRequest) {
             args: [cardId, userId, nim, nfcUrl]
         });
 
+        console.log('NFC Card created successfully:', cardId);
+
         return NextResponse.json({
             success: true,
             nfcUrl,
             cardId
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating NFC card:', error);
-        return NextResponse.json({ error: 'Failed to create NFC card' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Failed to create NFC card',
+            details: error.message
+        }, { status: 500 });
     }
 }
 
