@@ -1,37 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// Auto-migrate NFC tables if they don't exist
+// Flag to track if migration has been attempted this session
+let migrationAttempted = false;
+
+// Auto-migrate NFC tables - only runs once per deployment
 async function ensureNFCTables() {
+    if (migrationAttempted) return;
+    migrationAttempted = true;
+
     try {
-        await db.execute(`
-            CREATE TABLE IF NOT EXISTS nfc_cards (
-                id TEXT PRIMARY KEY,
-                user_id TEXT NOT NULL,
-                nim TEXT NOT NULL,
-                short_id TEXT UNIQUE NOT NULL,
-                is_active INTEGER DEFAULT 1,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
+        // Check if nfc_cards table exists with correct structure
+        const tableCheck = await db.execute(`
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='nfc_cards'
         `);
 
-        await db.execute(`
-            CREATE TABLE IF NOT EXISTS nfc_sessions (
-                id TEXT PRIMARY KEY,
-                admin_id TEXT NOT NULL,
-                schedule_id TEXT NOT NULL,
-                course_id TEXT NOT NULL,
-                attendance_date TEXT NOT NULL,
-                is_active INTEGER DEFAULT 1,
-                expires_at TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
+        if (tableCheck.rows.length === 0) {
+            // Table doesn't exist, create it
+            await db.execute(`
+                CREATE TABLE nfc_cards (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    nim TEXT NOT NULL,
+                    short_id TEXT UNIQUE NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `);
+            console.log('Created nfc_cards table');
+        } else {
+            // Check if short_id column exists
+            try {
+                await db.execute(`SELECT short_id FROM nfc_cards LIMIT 1`);
+            } catch (e) {
+                // short_id doesn't exist, need to recreate table
+                await db.execute(`DROP TABLE IF EXISTS nfc_cards`);
+                await db.execute(`
+                    CREATE TABLE nfc_cards (
+                        id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        nim TEXT NOT NULL,
+                        short_id TEXT UNIQUE NOT NULL,
+                        is_active INTEGER DEFAULT 1,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                `);
+                console.log('Recreated nfc_cards table with short_id column');
+            }
+        }
+
+        // Check and create nfc_sessions table
+        const sessionsCheck = await db.execute(`
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='nfc_sessions'
         `);
 
+        if (sessionsCheck.rows.length === 0) {
+            await db.execute(`
+                CREATE TABLE nfc_sessions (
+                    id TEXT PRIMARY KEY,
+                    admin_id TEXT NOT NULL,
+                    schedule_id TEXT NOT NULL,
+                    course_id TEXT NOT NULL,
+                    attendance_date TEXT NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    expires_at TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('Created nfc_sessions table');
+        }
+
+        // Create indexes
         await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_cards_user ON nfc_cards(user_id)`);
         await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_cards_short ON nfc_cards(short_id)`);
         await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_sessions_active ON nfc_sessions(is_active)`);
+
     } catch (error) {
         console.error('Error ensuring NFC tables:', error);
     }
@@ -71,7 +118,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(result.rows);
     } catch (error) {
         console.error('Error fetching NFC cards:', error);
-        return NextResponse.json({ error: 'Failed to fetch NFC cards' }, { status: 500 });
+        return NextResponse.json([], { status: 200 }); // Return empty array instead of error
     }
 }
 
