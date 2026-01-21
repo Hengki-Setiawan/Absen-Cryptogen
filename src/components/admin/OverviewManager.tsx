@@ -15,6 +15,8 @@ type Attendance = {
     student_name: string;
     course_name: string;
     course_code: string;
+    latitude?: number;
+    longitude?: number;
 };
 
 type GroupedData = {
