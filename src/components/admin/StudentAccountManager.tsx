@@ -17,7 +17,7 @@ type NFCCard = {
     id: string;
     user_id: string;
     nim: string;
-    nfc_url: string;
+    short_id: string;
     is_active: number;
 };
 
@@ -120,8 +120,10 @@ export default function StudentAccountManager() {
         }
     };
 
-    const handleCopyNFC = (url: string, studentId: string) => {
-        navigator.clipboard.writeText(url);
+    const handleCopyNFC = (shortId: string, studentId: string) => {
+        const domain = 'https://absen-cryptogen.vercel.app';
+        const nfcUrl = `${domain}/nfc/${shortId}`;
+        navigator.clipboard.writeText(nfcUrl);
         setCopiedUrl(studentId);
         setTimeout(() => setCopiedUrl(null), 2000);
     };
@@ -222,7 +224,7 @@ export default function StudentAccountManager() {
                                                             ✓ Generated
                                                         </span>
                                                         <button
-                                                            onClick={() => handleCopyNFC(nfcCard.nfc_url, student.id)}
+                                                            onClick={() => handleCopyNFC(nfcCard.short_id, student.id)}
                                                             className="p-1 hover:bg-slate-100 rounded"
                                                             title="Copy NFC URL"
                                                         >

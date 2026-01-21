@@ -1,24 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, generateId } from '@/lib/db';
+import { db } from '@/lib/db';
 
 // Auto-migrate NFC tables if they don't exist
 async function ensureNFCTables() {
     try {
-        // Create nfc_cards table
         await db.execute(`
             CREATE TABLE IF NOT EXISTS nfc_cards (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 nim TEXT NOT NULL,
-                nfc_url TEXT UNIQUE NOT NULL,
+                short_id TEXT UNIQUE NOT NULL,
                 is_active INTEGER DEFAULT 1,
-                assigned_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
 
-        // Create nfc_sessions table
         await db.execute(`
             CREATE TABLE IF NOT EXISTS nfc_sessions (
                 id TEXT PRIMARY KEY,
@@ -28,26 +25,31 @@ async function ensureNFCTables() {
                 attendance_date TEXT NOT NULL,
                 is_active INTEGER DEFAULT 1,
                 expires_at TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
-                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
-        // Create indexes
         await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_cards_user ON nfc_cards(user_id)`);
-        await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_cards_nim ON nfc_cards(nim)`);
+        await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_cards_short ON nfc_cards(short_id)`);
         await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_sessions_active ON nfc_sessions(is_active)`);
     } catch (error) {
         console.error('Error ensuring NFC tables:', error);
     }
 }
 
+// Generate short random ID (12 characters)
+function generateShortId(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 12; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
 // GET - Mendapatkan daftar kartu NFC
 export async function GET(req: NextRequest) {
     try {
-        // Ensure tables exist
         await ensureNFCTables();
 
         const { searchParams } = new URL(req.url);
@@ -76,13 +78,10 @@ export async function GET(req: NextRequest) {
 // POST - Generate NFC link untuk mahasiswa
 export async function POST(req: NextRequest) {
     try {
-        // Ensure tables exist
         await ensureNFCTables();
 
         const body = await req.json();
         const { userId, nim } = body;
-
-        console.log('NFC Card Generation Request:', { userId, nim });
 
         if (!userId || !nim) {
             return NextResponse.json({ error: 'userId and nim are required' }, { status: 400 });
@@ -95,38 +94,35 @@ export async function POST(req: NextRequest) {
         });
 
         if (existing.rows.length > 0) {
+            const card = existing.rows[0] as any;
+            const domain = process.env.NEXT_PUBLIC_SITE_URL || 'https://absen-cryptogen.vercel.app';
             return NextResponse.json({
-                error: 'User already has an NFC card',
-                card: existing.rows[0]
-            }, { status: 400 });
+                success: true,
+                message: 'NFC card already exists',
+                nfcUrl: `${domain}/nfc/${card.short_id}`,
+                shortId: card.short_id,
+                isExisting: true
+            });
         }
 
-        // Generate unique NFC URL
-        const cardId = generateId();
-        const nfcToken = Buffer.from(JSON.stringify({
-            userId,
-            nim,
-            cardId,
-            timestamp: Date.now()
-        })).toString('base64');
-
-        const domain = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-        const nfcUrl = `${domain}/nfc-attend?token=${nfcToken}`;
-
-        console.log('Generated NFC URL:', nfcUrl);
+        // Generate short ID
+        const shortId = generateShortId();
+        const cardId = `nfc_${Date.now()}`;
 
         // Insert into database
         await db.execute({
-            sql: `INSERT INTO nfc_cards (id, user_id, nim, nfc_url, is_active) 
+            sql: `INSERT INTO nfc_cards (id, user_id, nim, short_id, is_active) 
                   VALUES (?, ?, ?, ?, 1)`,
-            args: [cardId, userId, nim, nfcUrl]
+            args: [cardId, userId, nim, shortId]
         });
 
-        console.log('NFC Card created successfully:', cardId);
+        const domain = process.env.NEXT_PUBLIC_SITE_URL || 'https://absen-cryptogen.vercel.app';
+        const nfcUrl = `${domain}/nfc/${shortId}`;
 
         return NextResponse.json({
             success: true,
             nfcUrl,
+            shortId,
             cardId
         });
     } catch (error: any) {
@@ -138,7 +134,7 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// PUT - Update status kartu NFC (activate/deactivate)
+// PUT - Update status kartu NFC
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json();
