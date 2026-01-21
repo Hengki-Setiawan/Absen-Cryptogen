@@ -98,7 +98,13 @@ export default function OverviewManager() {
         setIsExporting(true);
         try {
             const exportData = attendances.map((a, index) => {
+                // Determine Method
+                let method = 'Manual (Foto)';
+                if (a.photo_url === 'NFC_SCAN') method = 'NFC Card';
+                else if (a.photo_url === 'QR_SUBMISSION') method = 'QR Code';
+
                 const checkInDate = new Date(a.check_in_time);
+
                 return {
                     'No': index + 1,
                     'Jadwal Kuliah': a.attendance_date, // Tanggal sesuai jadwal
@@ -107,6 +113,7 @@ export default function OverviewManager() {
                     'NIM': a.nim,
                     'Nama Mahasiswa': a.student_name,
                     'Mata Kuliah': a.course_name,
+                    'Metode': method,
                     'Status': a.status,
                     'Keterangan': a.notes || '-',
                     'Lokasi': a.address || '-',
@@ -130,16 +137,24 @@ export default function OverviewManager() {
     // Export specific course on specific date
     const handleExportCourse = (date: string, courseName: string, items: Attendance[]) => {
         try {
-            const exportData = items.map((a, index) => ({
-                'No': index + 1,
-                'NIM': a.nim,
-                'Nama Mahasiswa': a.student_name,
-                'Waktu Absen': a.check_in_time,
-                'Status': a.status?.toUpperCase() || 'HADIR',
-                'Keterangan': a.notes || '-',
-                'Lokasi': a.address || '-',
-                'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
-            }));
+            const exportData = items.map((a, index) => {
+                // Determine Method
+                let method = 'Manual (Foto)';
+                if (a.photo_url === 'NFC_SCAN') method = 'NFC Card';
+                else if (a.photo_url === 'QR_SUBMISSION') method = 'QR Code';
+
+                return {
+                    'No': index + 1,
+                    'NIM': a.nim,
+                    'Nama Mahasiswa': a.student_name,
+                    'Waktu Absen': a.check_in_time,
+                    'Metode': method,
+                    'Status': a.status?.toUpperCase() || 'HADIR',
+                    'Keterangan': a.notes || '-',
+                    'Lokasi': a.address || '-',
+                    'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
+                };
+            });
 
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
