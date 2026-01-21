@@ -4,13 +4,9 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     // Ensure columns exist (Auto-migration for Admin View)
-    try {
-      await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`);
-      await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`);
-      await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`);
-    } catch (e: any) {
-      // Ignore error if columns already exist
-    }
+    try { await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`); } catch (e) { }
+    try { await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`); } catch (e) { }
+    try { await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`); } catch (e) { }
 
     const result = await db.execute(`
       SELECT 

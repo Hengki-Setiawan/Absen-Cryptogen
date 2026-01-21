@@ -18,13 +18,9 @@ export async function POST(request: Request) {
         }
 
         // Ensure location columns exist (Auto-migration)
-        try {
-            await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`);
-            await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`);
-            await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`);
-        } catch (e: any) {
-            // Ignore error if columns already exist
-        }
+        try { await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`); } catch (e) { }
+        try { await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`); } catch (e) { }
+        try { await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`); } catch (e) { }
 
         // Get Address if location is provided
         let address = null;
