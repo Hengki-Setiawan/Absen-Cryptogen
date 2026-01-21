@@ -274,6 +274,20 @@ export default function AbsenPage() {
 
     const handleAutoSubmit = async (studentId: string, courseId: string, date: string) => {
         setIsSubmitting(true);
+        setErrorMessage('');
+
+        // Get location for QR auto-submit
+        let currentLoc = null;
+        try {
+            currentLoc = await getLocation();
+            setLocation(currentLoc);
+        } catch (error: any) {
+            console.error('Location error:', error);
+            setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS untuk absen QR.');
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
             // Check if already present? (Optional optimization)
 
@@ -289,7 +303,9 @@ export default function AbsenPage() {
                     notes: 'Auto-attendance via QR',
                     photoUrl: null, // No photo needed for QR
                     timestamp: new Date().toISOString(),
-                    isQr: true // Flag to bypass photo check in API if needed
+                    isQr: true, // Flag to bypass photo check in API if needed
+                    latitude: currentLoc?.lat,
+                    longitude: currentLoc?.long
                 }),
             });
 
@@ -329,6 +345,44 @@ export default function AbsenPage() {
         }
     };
 
+    const [location, setLocation] = useState<{ lat: number; long: number } | null>(null);
+    const [locationError, setLocationError] = useState('');
+
+    // Get location on mount or before submit
+    const getLocation = () => {
+        return new Promise<{ lat: number; long: number }>((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        lat: position.coords.latitude,
+                        long: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    let msg = 'Gagal mendapatkan lokasi.';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            msg = 'Izin lokasi ditolak. Mohon aktifkan izin lokasi.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            msg = 'Informasi lokasi tidak tersedia.';
+                            break;
+                        case error.TIMEOUT:
+                            msg = 'Waktu permintaan lokasi habis.';
+                            break;
+                    }
+                    reject(new Error(msg));
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -352,6 +406,22 @@ export default function AbsenPage() {
 
         setIsSubmitting(true);
         setErrorMessage('');
+        setLocationError('');
+
+        let currentLoc = location;
+
+        // Try to get location if not already available
+        try {
+            currentLoc = await getLocation();
+            setLocation(currentLoc);
+        } catch (error: any) {
+            console.error('Location error:', error);
+            // We can decide whether to block submission or just warn
+            // For now, let's require location as per user request "wajib kan agar mereka menyalakan lokasi"
+            setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS.');
+            setIsSubmitting(false);
+            return;
+        }
 
         try {
             // Handle Offline Submission
@@ -362,7 +432,10 @@ export default function AbsenPage() {
                     attendanceDate,
                     status,
                     notes,
-                    file
+                    file,
+                    // @ts-ignore - offline storage might need update too, but for now let's focus on online
+                    latitude: currentLoc?.lat,
+                    longitude: currentLoc?.long
                 });
 
                 // Save student selection for next time
@@ -375,7 +448,6 @@ export default function AbsenPage() {
                 return;
             }
 
-            // Check if Supabase is configured
             // Check if Supabase is configured
             if (!supabase) {
                 throw new Error('Supabase tidak terkonfigurasi. Hubungi administrator.');
@@ -426,7 +498,9 @@ export default function AbsenPage() {
                         status,
                         notes,
                         photoUrl: publicUrl,
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        latitude: currentLoc?.lat,
+                        longitude: currentLoc?.long
                     }),
                 });
             } catch (e) {

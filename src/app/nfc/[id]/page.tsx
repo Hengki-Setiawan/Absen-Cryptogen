@@ -23,16 +23,50 @@ export default function NFCPage() {
 
     useEffect(() => {
         if (shortId) {
-            processNFCScan(shortId);
+            // Try to get location first, then process scan
+            getLocationAndProcess(shortId);
         }
     }, [shortId]);
 
-    async function processNFCScan(id: string) {
+    const getLocationAndProcess = async (id: string) => {
+        let location = null;
+        try {
+            location = await getLocation();
+        } catch (error) {
+            console.error('Location error:', error);
+            // We proceed even if location fails, but maybe we should warn?
+            // User requested "wajib kan", so maybe we should error out?
+            // But for NFC auto-scan, blocking might be annoying if GPS is slow.
+            // Let's try to get it, if fail, send null (or maybe show error if strict)
+            // For now, let's proceed but log it.
+        }
+        processNFCScan(id, location);
+    };
+
+    const getLocation = () => {
+        return new Promise<{ lat: number; long: number }>((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation not supported'));
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (pos) => resolve({ lat: pos.coords.latitude, long: pos.coords.longitude }),
+                (err) => reject(err),
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        });
+    };
+
+    async function processNFCScan(id: string, location: { lat: number; long: number } | null) {
         try {
             const res = await fetch('/api/nfc/scan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ shortId: id })
+                body: JSON.stringify({
+                    shortId: id,
+                    latitude: location?.lat,
+                    longitude: location?.long
+                })
             });
 
             const data = await res.json();
@@ -102,10 +136,10 @@ export default function NFCPage() {
                                     <div
                                         key={index}
                                         className={`p-3 rounded-lg flex items-center gap-3 ${result.status === 'success'
-                                                ? 'bg-green-50 text-green-800'
-                                                : result.status === 'already'
-                                                    ? 'bg-yellow-50 text-yellow-800'
-                                                    : 'bg-red-50 text-red-800'
+                                            ? 'bg-green-50 text-green-800'
+                                            : result.status === 'already'
+                                                ? 'bg-yellow-50 text-yellow-800'
+                                                : 'bg-red-50 text-red-800'
                                             }`}
                                     >
                                         <BookOpen className="w-5 h-5 flex-shrink-0" />

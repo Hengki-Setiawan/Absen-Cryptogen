@@ -4,7 +4,7 @@ import { db, generateId } from '@/lib/db';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { studentId, courseId, attendanceDate, status, notes, photoUrl, timestamp, isQr } = body;
+        const { studentId, courseId, attendanceDate, status, notes, photoUrl, timestamp, isQr, latitude, longitude } = body;
 
         // Validate required fields
         // If isQr is true, photoUrl is NOT required
@@ -14,6 +14,14 @@ export async function POST(request: Request) {
 
         if (!isQr && !photoUrl) {
             return NextResponse.json({ error: 'Photo is required for manual attendance' }, { status: 400 });
+        }
+
+        // Ensure location columns exist (Auto-migration)
+        try {
+            await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`);
+            await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`);
+        } catch (e: any) {
+            // Ignore error if columns already exist
         }
 
         // Insert into attendances table
@@ -48,8 +56,8 @@ export async function POST(request: Request) {
 
         await db.execute({
             sql: `INSERT INTO attendances (
-        id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url, latitude, longitude
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
                 attendanceId,
                 studentId,
@@ -59,7 +67,9 @@ export async function POST(request: Request) {
                 timestamp, // check_in_time
                 status,
                 notes || '',
-                photoUrl || (isQr ? 'QR_SUBMISSION' : null)
+                photoUrl || (isQr ? 'QR_SUBMISSION' : null),
+                latitude || null,
+                longitude || null
             ]
         });
 

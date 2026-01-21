@@ -5,10 +5,18 @@ import { db, generateId } from '@/lib/db';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { shortId } = body;
+        const { shortId, latitude, longitude } = body;
 
         if (!shortId) {
             return NextResponse.json({ error: 'Short ID is required' }, { status: 400 });
+        }
+
+        // Ensure location columns exist (Auto-migration)
+        try {
+            await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`);
+            await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`);
+        } catch (e: any) {
+            // Ignore error if columns already exist
         }
 
         // Find NFC card by short ID
@@ -71,9 +79,9 @@ export async function POST(req: NextRequest) {
                 // Record attendance
                 const attendanceId = generateId();
                 await db.execute({
-                    sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time)
-                          VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'))`,
-                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date]
+                    sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time, latitude, longitude)
+                          VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'), ?, ?)`,
+                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date, latitude || null, longitude || null]
                 });
 
                 attendanceResults.push({

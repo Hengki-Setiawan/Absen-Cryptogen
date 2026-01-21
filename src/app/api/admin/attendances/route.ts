@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 export async function GET() {
-    try {
-        const result = await db.execute(`
+  try {
+    const result = await db.execute(`
       SELECT 
         a.id,
         a.attendance_date,
@@ -11,6 +11,8 @@ export async function GET() {
         a.status,
         a.notes,
         a.photo_url,
+        a.latitude,
+        a.longitude,
         u.nim,
         u.full_name as student_name,
         c.name as course_name,
@@ -21,9 +23,9 @@ export async function GET() {
       ORDER BY a.attendance_date DESC, a.check_in_time DESC
     `);
 
-        return NextResponse.json(result.rows);
-    } catch (error) {
-        console.error('Failed to fetch attendances:', error);
-        return NextResponse.json({ error: 'Failed to fetch attendances' }, { status: 500 });
-    }
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('Failed to fetch attendances:', error);
+    return NextResponse.json({ error: 'Failed to fetch attendances' }, { status: 500 });
+  }
 }

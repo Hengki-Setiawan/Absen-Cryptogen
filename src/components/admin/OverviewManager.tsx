@@ -102,7 +102,10 @@ export default function OverviewManager() {
                 'Nama Mahasiswa': a.student_name,
                 'Mata Kuliah': a.course_name,
                 'Status': a.status,
-                'Keterangan': a.notes || '-'
+                'Keterangan': a.notes || '-',
+                'Latitude': a.latitude || '-',
+                'Longitude': a.longitude || '-',
+                'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -127,7 +130,10 @@ export default function OverviewManager() {
                 'Nama Mahasiswa': a.student_name,
                 'Waktu Absen': a.check_in_time,
                 'Status': a.status?.toUpperCase() || 'HADIR',
-                'Keterangan': a.notes || '-'
+                'Keterangan': a.notes || '-',
+                'Latitude': a.latitude || '-',
+                'Longitude': a.longitude || '-',
+                'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(exportData);
