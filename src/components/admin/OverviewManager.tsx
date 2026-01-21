@@ -107,8 +107,6 @@ export default function OverviewManager() {
                 'Status': a.status,
                 'Keterangan': a.notes || '-',
                 'Lokasi': a.address || '-',
-                'Latitude': a.latitude || '-',
-                'Longitude': a.longitude || '-',
                 'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
             }));
 
@@ -136,8 +134,6 @@ export default function OverviewManager() {
                 'Status': a.status?.toUpperCase() || 'HADIR',
                 'Keterangan': a.notes || '-',
                 'Lokasi': a.address || '-',
-                'Latitude': a.latitude || '-',
-                'Longitude': a.longitude || '-',
                 'Maps Link': a.latitude && a.longitude ? `https://www.google.com/maps?q=${a.latitude},${a.longitude}` : '-'
             }));
 
@@ -213,6 +209,28 @@ export default function OverviewManager() {
         });
     };
 
+    const [isBackfilling, setIsBackfilling] = useState(false);
+
+    const handleBackfill = async () => {
+        setIsBackfilling(true);
+        try {
+            const res = await fetch('/api/admin/backfill-addresses', { method: 'POST' });
+            const data = await res.json();
+            if (data.updatedCount > 0) {
+                setCleanupResult(`✓ ${data.updatedCount} lokasi berhasil diperbarui!`);
+                setTimeout(() => setCleanupResult(null), 5000);
+                fetchAttendances();
+            } else {
+                setCleanupResult('✓ Semua data lokasi sudah lengkap');
+                setTimeout(() => setCleanupResult(null), 3000);
+            }
+        } catch (error) {
+            alert('Gagal memperbarui lokasi');
+        } finally {
+            setIsBackfilling(false);
+        }
+    };
+
     return (
         <div>
             {cleanupResult && (
@@ -258,6 +276,9 @@ export default function OverviewManager() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                    <button onClick={handleBackfill} disabled={isBackfilling} className="flex items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm">
+                        <RefreshCw className={`w-4 h-4 ${isBackfilling ? 'animate-spin' : ''}`} /> {isBackfilling ? 'Memperbarui...' : 'Update Lokasi'}
+                    </button>
                     <button onClick={runCleanup} className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm">
                         <Trash2 className="w-4 h-4" /> Cleanup
                     </button>
