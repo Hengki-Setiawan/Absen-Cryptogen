@@ -142,6 +142,43 @@ export async function initializeDatabase() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_student_courses_user ON student_courses(user_id)`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_blog_posts_author ON blog_posts(author_id)`);
 
+    // NFC Cards table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS nfc_cards (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        nim TEXT NOT NULL,
+        nfc_url TEXT UNIQUE NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        assigned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // NFC Sessions table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS nfc_sessions (
+        id TEXT PRIMARY KEY,
+        admin_id TEXT NOT NULL,
+        schedule_id TEXT NOT NULL,
+        course_id TEXT NOT NULL,
+        attendance_date TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        expires_at TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create indexes for NFC tables
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_cards_user ON nfc_cards(user_id)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_cards_nim ON nfc_cards(nim)`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_nfc_sessions_active ON nfc_sessions(is_active)`);
+
+
     console.log('Database initialized successfully');
     return { success: true };
   } catch (error) {

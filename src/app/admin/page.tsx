@@ -12,8 +12,10 @@ import StatisticsManager from '@/components/admin/StatisticsManager';
 import QRGenerator from '@/components/admin/QRGenerator';
 import BlogManager from '@/components/admin/BlogManager';
 import PasswordRequests from '@/components/admin/PasswordRequests';
+import StudentAccountManager from '@/components/admin/StudentAccountManager';
+import NFCScanner from '@/components/admin/NFCScanner';
 
-type TabType = 'overview' | 'statistics' | 'qr' | 'students' | 'schedules' | 'tasks' | 'blog' | 'content' | 'requests' | 'admins';
+type TabType = 'overview' | 'statistics' | 'qr' | 'nfc' | 'nfc-accounts' | 'students' | 'schedules' | 'tasks' | 'blog' | 'content' | 'requests' | 'admins';
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -127,6 +129,8 @@ export default function AdminPage() {
         { id: 'overview', label: '📊 Overview' },
         { id: 'statistics', label: '📈 Statistik' },
         { id: 'qr', label: '📱 QR Code' },
+        { id: 'nfc', label: '📡 NFC Scanner' },
+        { id: 'nfc-accounts', label: '🎫 Akun & NFC' },
         { id: 'students', label: '👨‍🎓 Mahasiswa' },
         { id: 'schedules', label: '📅 Jadwal' },
         { id: 'tasks', label: '📌 Tugas' },
@@ -181,6 +185,8 @@ export default function AdminPage() {
                     {activeTab === 'overview' && <OverviewManager />}
                     {activeTab === 'statistics' && <StatisticsManager />}
                     {activeTab === 'qr' && <QRGenerator />}
+                    {activeTab === 'nfc' && <NFCScanner />}
+                    {activeTab === 'nfc-accounts' && <StudentAccountManager />}
                     {activeTab === 'students' && <StudentManager />}
                     {activeTab === 'schedules' && <ScheduleManager />}
                     {activeTab === 'tasks' && <TaskManager />}

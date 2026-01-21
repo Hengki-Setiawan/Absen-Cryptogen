@@ -6,7 +6,7 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const role = searchParams.get('role');
 
-        let query = 'SELECT id, nim, full_name, role, username, position, avatar_url FROM users';
+        let query = 'SELECT id, nim, full_name, role, username, password, position, avatar_url, phone, instagram, email FROM users';
         const args: any[] = [];
 
         if (role) {
@@ -22,6 +22,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 }
+
 
 export async function POST(request: Request) {
     try {
