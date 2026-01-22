@@ -2,6 +2,31 @@ import { NextResponse } from 'next/server';
 import { db, generateId } from '@/lib/db';
 import { getAddressFromCoordinates } from '@/lib/geocoding';
 
+// UNM Parangtambung coordinates
+const UNM_LAT = -5.181667;
+const UNM_LONG = 119.425278;
+
+// Haversine formula to calculate distance between two coordinates
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in meters
+}
+
+// Format distance for display
+function formatDistance(meters: number): string {
+    if (meters >= 1000) {
+        return `${(meters / 1000).toFixed(1)} km`;
+    }
+    return `${Math.round(meters)} m`;
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -24,8 +49,13 @@ export async function POST(request: Request) {
 
         // Get Address if location is provided
         let address = null;
+        let distanceInfo = '';
         if (latitude && longitude) {
             address = await getAddressFromCoordinates(latitude, longitude);
+
+            // Calculate and format distance from UNM
+            const distance = calculateDistance(latitude, longitude, UNM_LAT, UNM_LONG);
+            distanceInfo = `[Jarak dari UNM: ${formatDistance(distance)}]`;
         }
 
         // Insert into attendances table
@@ -60,6 +90,11 @@ export async function POST(request: Request) {
 
         const serverTimestamp = new Date().toISOString();
 
+        // Combine notes with distance info
+        const finalNotes = distanceInfo
+            ? (notes ? `${notes} ${distanceInfo}` : distanceInfo)
+            : (notes || '');
+
         await db.execute({
             sql: `INSERT INTO attendances (
         id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url, latitude, longitude, address
@@ -72,7 +107,7 @@ export async function POST(request: Request) {
                 attendanceDate, // attendance_date from form (Schedule Date)
                 serverTimestamp, // check_in_time (Server Time - Secure)
                 status,
-                notes || '',
+                finalNotes,
                 photoUrl || (isQr ? 'QR_SUBMISSION' : null),
                 latitude || null,
                 longitude || null,
@@ -80,7 +115,7 @@ export async function POST(request: Request) {
             ]
         });
 
-        return NextResponse.json({ success: true, id: attendanceId, address });
+        return NextResponse.json({ success: true, id: attendanceId, address, distance: distanceInfo });
     } catch (error) {
         console.error('Attendance submission error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

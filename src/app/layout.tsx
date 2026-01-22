@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PWAProvider from '@/components/PWAProvider';
+import Chatbot from '@/components/Chatbot';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -40,8 +41,10 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <Chatbot />
         </PWAProvider>
       </body>
     </html>
   );
 }
+

@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Users, Calendar, ClipboardCheck, ArrowRight, Sparkles } from 'lucide-react';
+import QuotesSection from '@/components/QuotesSection';
 
 export default function HomePage() {
   return (
@@ -62,6 +63,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Quotes Section */}
+      <QuotesSection />
 
       {/* Stats Section */}
       <section className="py-16 bg-white">
