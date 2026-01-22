@@ -64,7 +64,7 @@ export default function Chatbot() {
         }
     };
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
+    const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
@@ -77,8 +77,8 @@ export default function Chatbot() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 ${isOpen
-                        ? 'bg-slate-600 hover:bg-slate-700 rotate-0'
-                        : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 animate-bounce-slow'
+                    ? 'bg-slate-600 hover:bg-slate-700 rotate-0'
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 animate-bounce-slow'
                     }`}
                 title={isOpen ? 'Tutup Chat' : 'Bantuan AI'}
             >
@@ -117,8 +117,8 @@ export default function Chatbot() {
                                 )}
                                 <div
                                     className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${msg.role === 'user'
-                                            ? 'bg-blue-500 text-white rounded-br-md'
-                                            : 'bg-white text-slate-700 shadow-sm border border-slate-100 rounded-bl-md'
+                                        ? 'bg-blue-500 text-white rounded-br-md'
+                                        : 'bg-white text-slate-700 shadow-sm border border-slate-100 rounded-bl-md'
                                         }`}
                                 >
                                     <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -150,7 +150,7 @@ export default function Chatbot() {
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                onKeyPress={handleKeyPress}
+                                onKeyDown={handleKeyDown}
                                 placeholder="Ketik pesan..."
                                 disabled={isLoading}
                                 className="flex-1 px-4 py-2 rounded-full border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm disabled:opacity-50"

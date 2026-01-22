@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Quote, RefreshCw } from 'lucide-react';
 
 interface QuoteData {
@@ -8,8 +8,8 @@ interface QuoteData {
     author: string;
 }
 
-// Fallback quotes - used for instant display
-const fallbackQuotes: QuoteData[] = [
+// Local quotes - no network dependency, works offline
+const quotes: QuoteData[] = [
     { content: "Pendidikan adalah senjata paling ampuh yang bisa kamu gunakan untuk mengubah dunia.", author: "Nelson Mandela" },
     { content: "Belajar tidak pernah membuat pikiran lelah.", author: "Leonardo da Vinci" },
     { content: "Masa depan adalah milik mereka yang percaya pada keindahan impian mereka.", author: "Eleanor Roosevelt" },
@@ -18,45 +18,26 @@ const fallbackQuotes: QuoteData[] = [
     { content: "Jangan pernah berhenti bermimpi, karena mimpi hari ini adalah kenyataan esok hari.", author: "APJ Abdul Kalam" },
     { content: "Kesuksesan bukanlah akhir, kegagalan bukanlah fatal: yang terpenting adalah keberanian untuk terus melangkah.", author: "Winston Churchill" },
     { content: "Ilmu itu lebih baik daripada harta. Ilmu menjaga engkau dan engkau menjaga harta.", author: "Ali bin Abi Thalib" },
+    { content: "Hidup ini seperti sepeda. Agar tetap seimbang, kamu harus terus bergerak.", author: "Albert Einstein" },
+    { content: "Investasi terbaik adalah investasi dalam ilmu pengetahuan.", author: "Benjamin Franklin" },
+    { content: "Kegagalan adalah kesempatan untuk memulai lagi dengan lebih cerdas.", author: "Henry Ford" },
+    { content: "Orang yang tidak pernah melakukan kesalahan adalah orang yang tidak pernah mencoba sesuatu yang baru.", author: "Albert Einstein" },
 ];
 
-// Get random fallback quote
-const getRandomFallback = () => fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
+// Get random quote
+const getRandomQuote = () => quotes[Math.floor(Math.random() * quotes.length)];
 
 export default function QuotesSection() {
-    // Start with fallback immediately - no loading state
-    const [quote, setQuote] = useState<QuoteData>(getRandomFallback);
-    const [isFetching, setIsFetching] = useState(false);
+    const [quote, setQuote] = useState<QuoteData>(getRandomQuote);
 
-    const fetchQuote = async () => {
-        setIsFetching(true);
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-            const response = await fetch('https://api.quotable.io/random', {
-                signal: controller.signal,
-                cache: 'no-store'
-            });
-            clearTimeout(timeoutId);
-
-            if (!response.ok) throw new Error('Failed to fetch');
-            const data = await response.json();
-            setQuote({ content: data.content, author: data.author });
-        } catch (error) {
-            // Use fallback quote on error
-            setQuote(getRandomFallback());
-        } finally {
-            setIsFetching(false);
+    const nextQuote = () => {
+        // Get a different quote
+        let newQuote = getRandomQuote();
+        while (newQuote.content === quote.content && quotes.length > 1) {
+            newQuote = getRandomQuote();
         }
+        setQuote(newQuote);
     };
-
-    // Only fetch once on mount, no auto-rotate (for performance)
-    useEffect(() => {
-        // Lazy fetch after initial render
-        const timer = setTimeout(fetchQuote, 2000);
-        return () => clearTimeout(timer);
-    }, []);
 
     return (
         <section className="py-6 bg-gradient-to-r from-amber-50 to-orange-50 relative overflow-hidden">
@@ -73,7 +54,7 @@ export default function QuotesSection() {
 
                     {/* Quote Content */}
                     <blockquote className="text-lg sm:text-xl font-medium text-slate-700 italic mb-3 leading-relaxed">
-                        "{quote.content}"
+                        &ldquo;{quote.content}&rdquo;
                     </blockquote>
 
                     {/* Author */}
@@ -84,13 +65,12 @@ export default function QuotesSection() {
                     {/* Refresh Button */}
                     <div className="mt-3">
                         <button
-                            onClick={fetchQuote}
-                            disabled={isFetching}
-                            className="inline-flex items-center gap-2 text-xs text-amber-600 hover:text-amber-800 transition-colors disabled:opacity-50"
+                            onClick={nextQuote}
+                            className="inline-flex items-center gap-2 text-xs text-amber-600 hover:text-amber-800 transition-colors"
                             title="Ganti Quote"
                         >
-                            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-                            {isFetching ? 'Memuat...' : 'Quote Lain'}
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Quote Lain
                         </button>
                     </div>
                 </div>
@@ -98,4 +78,5 @@ export default function QuotesSection() {
         </section>
     );
 }
+
 
