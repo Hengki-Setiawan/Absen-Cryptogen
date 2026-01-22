@@ -363,8 +363,14 @@ export default function AbsenPage() {
     // Get location on mount or before submit
     const getLocation = () => {
         return new Promise<{ lat: number; long: number; accuracy: number; isMock: boolean }>((resolve, reject) => {
+            // Check if running in browser
+            if (typeof window === 'undefined') {
+                reject(new Error('Tidak dapat mengakses lokasi'));
+                return;
+            }
+
             if (!navigator.geolocation) {
-                reject(new Error('Geolocation is not supported by your browser'));
+                reject(new Error('Browser tidak mendukung geolokasi. Gunakan browser modern.'));
                 return;
             }
 
