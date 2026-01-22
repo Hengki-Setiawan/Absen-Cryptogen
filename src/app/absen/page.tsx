@@ -338,11 +338,11 @@ export default function AbsenPage() {
             setIsCompressing(true);
             try {
                 const options = {
-                    maxSizeMB: 0.2, // 200KB max
-                    maxWidthOrHeight: 800,
+                    maxSizeMB: 0.08, // 80KB max - faster upload
+                    maxWidthOrHeight: 600, // Smaller resolution
                     useWebWorker: true,
                     fileType: 'image/webp', // Convert to WebP for smaller size
-                    initialQuality: 0.7,
+                    initialQuality: 0.6,
                 };
                 const compressedFile = await imageCompression(file, options);
                 setFile(compressedFile);
