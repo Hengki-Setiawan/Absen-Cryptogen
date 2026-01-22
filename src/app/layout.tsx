@@ -1,10 +1,9 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PWAProvider from '@/components/PWAProvider';
-import Chatbot from '@/components/Chatbot';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -16,6 +15,14 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#4F8FEA',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
+
 export const metadata: Metadata = {
   title: 'Cryptgen Generation 2023 | Bisnis Digital UNM',
   description: 'Website resmi kelas Bisnis Digital angkatan 2023, Universitas Negeri Makassar.',
@@ -24,7 +31,6 @@ export const metadata: Metadata = {
     icon: '/logo.png',
     apple: '/logo.png',
   },
-  themeColor: '#4F8FEA',
 };
 
 export default function RootLayout({
@@ -41,7 +47,6 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
-          <Chatbot />
         </PWAProvider>
       </body>
     </html>
