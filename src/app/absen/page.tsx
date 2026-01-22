@@ -487,39 +487,52 @@ export default function AbsenPage() {
                 throw new Error('Supabase tidak terkonfigurasi. Hubungi administrator.');
             }
 
-            // 1. Upload Image to Supabase (Only if not QR auto-submission)
+            // 1. Upload Image with retry (Only if not QR auto-submission)
             let publicUrl = null;
 
             if (!isQrSubmission && file) {
-                const fileExt = file.name.split('.').pop();
+                const fileExt = file.name.split('.').pop() || 'webp';
                 const fileName = `${selectedStudent}/${Date.now()}.${fileExt}`;
 
-                let uploadError;
-                try {
-                    const result = await supabase.storage
-                        .from('attendance-photos')
-                        .upload(fileName, file);
-                    uploadError = result.error;
-                } catch (e) {
-                    console.error('Supabase upload exception:', e);
-                    throw new Error('Gagal mengupload foto ke server. Periksa koneksi internet Anda.');
+                // Retry upload up to 3 times
+                let uploadSuccess = false;
+                let lastError: any = null;
+
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        const result = await supabase.storage
+                            .from('attendance-photos')
+                            .upload(fileName, file);
+
+                        if (result.error) throw result.error;
+
+                        const { data } = supabase.storage
+                            .from('attendance-photos')
+                            .getPublicUrl(fileName);
+
+                        publicUrl = data.publicUrl;
+                        uploadSuccess = true;
+                        break;
+                    } catch (e: any) {
+                        lastError = e;
+                        console.error(`Upload attempt ${attempt}/3 failed:`, e);
+                        if (attempt < 3) {
+                            await new Promise(r => setTimeout(r, attempt * 1000));
+                        }
+                    }
                 }
 
-                if (uploadError) {
-                    console.error('Supabase upload error:', uploadError);
-                    throw new Error(`Gagal mengupload foto: ${uploadError.message}`);
+                if (!uploadSuccess) {
+                    throw new Error(`Gagal upload foto (3x percobaan). ${lastError?.message || 'Cek koneksi.'}`);
                 }
-
-                const { data } = supabase.storage
-                    .from('attendance-photos')
-                    .getPublicUrl(fileName);
-
-                publicUrl = data.publicUrl;
             } else if (!isQrSubmission && !file) {
                 throw new Error('Mohon upload bukti kehadiran (foto).');
             }
 
-            // 2. Submit Data to API
+            // 2. Submit Data to API with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
             let response;
             try {
                 response = await fetch('/api/attendance', {
@@ -532,15 +545,20 @@ export default function AbsenPage() {
                         status,
                         notes,
                         photoUrl: publicUrl,
-                        timestamp: new Date().toISOString(),
                         latitude: currentLoc?.lat,
                         longitude: currentLoc?.long,
                         accuracy: currentLoc?.accuracy
                     }),
+                    signal: controller.signal
                 });
-            } catch (e) {
+                clearTimeout(timeoutId);
+            } catch (e: any) {
+                clearTimeout(timeoutId);
+                if (e.name === 'AbortError') {
+                    throw new Error('Koneksi timeout. Jaringan lambat, coba lagi.');
+                }
                 console.error('API fetch exception:', e);
-                throw new Error('Gagal menghubungi server. Periksa koneksi internet Anda.');
+                throw new Error('Gagal menghubungi server. Periksa koneksi internet.');
             }
 
             if (!response.ok) {
