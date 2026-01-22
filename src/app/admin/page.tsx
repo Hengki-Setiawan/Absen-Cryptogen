@@ -14,8 +14,9 @@ import BlogManager from '@/components/admin/BlogManager';
 import PasswordRequests from '@/components/admin/PasswordRequests';
 import StudentAccountManager from '@/components/admin/StudentAccountManager';
 import NFCScanner from '@/components/admin/NFCScanner';
+import SettingsManager from '@/components/admin/SettingsManager';
 
-type TabType = 'overview' | 'statistics' | 'qr' | 'nfc' | 'nfc-accounts' | 'students' | 'schedules' | 'tasks' | 'blog' | 'content' | 'requests' | 'admins';
+type TabType = 'overview' | 'statistics' | 'qr' | 'nfc' | 'nfc-accounts' | 'students' | 'schedules' | 'tasks' | 'blog' | 'content' | 'requests' | 'admins' | 'settings';
 
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -138,6 +139,7 @@ export default function AdminPage() {
         { id: 'content', label: '📝 Konten' },
         { id: 'requests', label: '🔑 Reset Password' },
         { id: 'admins', label: '🔐 Admin' },
+        { id: 'settings', label: '⚙️ Pengaturan' },
     ];
 
     return (
@@ -194,6 +196,7 @@ export default function AdminPage() {
                     {activeTab === 'content' && <ContentManager />}
                     {activeTab === 'requests' && <PasswordRequests />}
                     {activeTab === 'admins' && <AdminManager />}
+                    {activeTab === 'settings' && <SettingsManager />}
                 </div>
             </div>
         </div>

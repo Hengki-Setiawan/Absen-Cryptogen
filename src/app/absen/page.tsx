@@ -76,6 +76,7 @@ export default function AbsenPage() {
     const [isOffline, setIsOffline] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [requireLocation, setRequireLocation] = useState(true);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -216,6 +217,14 @@ export default function AbsenPage() {
         }
 
         fetchData();
+
+        // Fetch location requirement setting
+        fetch('/api/settings')
+            .then(res => res.json())
+            .then(data => {
+                setRequireLocation(data.require_location === 'true');
+            })
+            .catch(() => setRequireLocation(true)); // Default to requiring location
     }, []);
 
     // Handle QR Token & Auto Attendance
@@ -430,11 +439,14 @@ export default function AbsenPage() {
             }
         } catch (error: any) {
             console.error('Location error:', error);
-            // We can decide whether to block submission or just warn
-            // For now, let's require location as per user request "wajib kan agar mereka menyalakan lokasi"
-            setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS.');
-            setIsSubmitting(false);
-            return;
+            // Only block if location is required
+            if (requireLocation) {
+                setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS.');
+                setIsSubmitting(false);
+                return;
+            }
+            // If location not required, proceed without it
+            currentLoc = null;
         }
 
         try {
