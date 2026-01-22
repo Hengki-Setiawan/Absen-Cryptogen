@@ -285,16 +285,18 @@ export default function AbsenPage() {
         setIsSubmitting(true);
         setErrorMessage('');
 
-        // Get location for QR auto-submit
+        // Get location for QR auto-submit (only if required)
         let currentLoc = null;
-        try {
-            currentLoc = await getLocation();
-            setLocation(currentLoc);
-        } catch (error: any) {
-            console.error('Location error:', error);
-            setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS untuk absen QR.');
-            setIsSubmitting(false);
-            return;
+        if (requireLocation) {
+            try {
+                currentLoc = await getLocation();
+                setLocation(currentLoc);
+            } catch (error: any) {
+                console.error('Location error:', error);
+                setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS untuk absen QR.');
+                setIsSubmitting(false);
+                return;
+            }
         }
 
         try {
@@ -814,6 +816,9 @@ export default function AbsenPage() {
                                             disabled={isCompressing}
                                         />
                                     </div>
+                                    <p className="text-xs text-center text-slate-400 mt-2">
+                                        Bisa pilih dari galeri atau ambil foto baru
+                                    </p>
                                 </div>
 
                                 {/* Keterangan Optional */}
