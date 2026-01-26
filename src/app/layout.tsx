@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   title: 'Cryptgen Generation 2023 | Bisnis Digital UNM',
   description: 'Website resmi kelas Bisnis Digital angkatan 2023, Universitas Negeri Makassar.',
   manifest: '/manifest.json',
-  manifest: '/manifest.json',
+
 };
 
 export default function RootLayout({
