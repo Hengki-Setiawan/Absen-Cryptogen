@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useState, useEffect, useCallback } from 'react';
 import { BarChart3, Users, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, Download, FileSpreadsheet } from 'lucide-react';
 
 type StatData = {
@@ -12,7 +11,6 @@ type StatData = {
 };
 
 export default function StatisticsManager() {
-    const [stats, setStats] = useState<StatData | null>(null);
     const [stats, setStats] = useState<StatData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [courses, setCourses] = useState<{ id: string; name: string; code: string }[]>([]);
@@ -46,11 +44,9 @@ export default function StatisticsManager() {
     }, []);
 
     useEffect(() => {
-        useEffect(() => {
-            fetchStats();
-            fetchCourses();
-        }, [fetchStats, fetchCourses]);
-    }, [fetchStats]);
+        fetchStats();
+        fetchCourses();
+    }, [fetchStats, fetchCourses]);
 
     const getStatusColor = (status: string) => {
         switch (status?.toLowerCase()) {
