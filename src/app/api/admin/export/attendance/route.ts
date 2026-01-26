@@ -24,16 +24,25 @@ export async function GET(request: Request) {
         }
         const course = courseResult.rows[0] as unknown as { name: string; code: string; semester: string };
 
-        // 2. Get All Students Enrolled in the Course
-        const studentsResult = await db.execute({
-            sql: `
-        SELECT u.id, u.nim, u.full_name
+        // 2. Get Students from attendance records (not from enrollment table)
+        let studentsQuery = `
+        SELECT DISTINCT u.id, u.nim, u.full_name
         FROM users u
-        JOIN student_courses sc ON u.id = sc.user_id
-        WHERE sc.course_id = ?
-        ORDER BY u.nim ASC
-      `,
-            args: [courseId]
+        JOIN attendances a ON u.id = a.user_id
+        WHERE a.course_id = ?
+      `;
+        const studentsArgs: any[] = [courseId];
+
+        if (startDate && endDate) {
+            studentsQuery += ' AND a.attendance_date BETWEEN ? AND ?';
+            studentsArgs.push(startDate, endDate);
+        }
+
+        studentsQuery += ' ORDER BY u.nim ASC';
+
+        const studentsResult = await db.execute({
+            sql: studentsQuery,
+            args: studentsArgs
         });
         const students = studentsResult.rows;
 
