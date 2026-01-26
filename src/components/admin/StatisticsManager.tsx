@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { BarChart3, Users, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart3, Users, CheckCircle, Clock, AlertCircle, RefreshCw, Trash2, Download, FileSpreadsheet } from 'lucide-react';
 
 type StatData = {
     totalAttendances: number;
@@ -12,7 +13,11 @@ type StatData = {
 
 export default function StatisticsManager() {
     const [stats, setStats] = useState<StatData | null>(null);
+    const [stats, setStats] = useState<StatData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [courses, setCourses] = useState<{ id: string; name: string; code: string }[]>([]);
+    const [selectedCourseId, setSelectedCourseId] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
 
     const fetchStats = useCallback(async () => {
         setIsLoading(true);
@@ -28,8 +33,23 @@ export default function StatisticsManager() {
         }
     }, []);
 
+    const fetchCourses = useCallback(async () => {
+        try {
+            const res = await fetch('/api/courses');
+            if (res.ok) {
+                const data = await res.json();
+                setCourses(data);
+            }
+        } catch (error) {
+            console.error('Error fetching courses:', error);
+        }
+    }, []);
+
     useEffect(() => {
-        fetchStats();
+        useEffect(() => {
+            fetchStats();
+            fetchCourses();
+        }, [fetchStats, fetchCourses]);
     }, [fetchStats]);
 
     const getStatusColor = (status: string) => {
@@ -47,6 +67,38 @@ export default function StatisticsManager() {
             case 'izin': return <Clock className="w-4 h-4" />;
             case 'sakit': return <AlertCircle className="w-4 h-4" />;
             default: return <AlertCircle className="w-4 h-4" />;
+        }
+    };
+
+    const handleExport = async () => {
+        if (!selectedCourseId) {
+            alert('Pilih mata kuliah terlebih dahulu');
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const res = await fetch(`/api/admin/export/attendance?courseId=${selectedCourseId}`);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Export failed');
+            }
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const course = courses.find(c => c.id === selectedCourseId);
+            a.download = `Absensi_${course?.name || 'Course'}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error: any) {
+            console.error('Export error:', error);
+            alert('Gagal export data: ' + error.message);
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -70,6 +122,30 @@ export default function StatisticsManager() {
                     <p className="text-sm text-slate-500">Ringkasan data absensi</p>
                 </div>
                 <div className="flex gap-2">
+                    {/* Export Section */}
+                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1 mr-2">
+                        <select
+                            value={selectedCourseId}
+                            onChange={(e) => setSelectedCourseId(e.target.value)}
+                            className="text-sm border-none outline-none bg-transparent w-40"
+                        >
+                            <option value="">Pilih Matkul...</option>
+                            {courses.map(course => (
+                                <option key={course.id} value={course.id}>
+                                    {course.code} - {course.name}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={handleExport}
+                            disabled={isExporting || !selectedCourseId}
+                            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        >
+                            {isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />}
+                            Export
+                        </button>
+                    </div>
+
                     <button
                         onClick={async () => {
                             if (!confirm('Hapus bukti absen lama (>24 jam)? Foto profil aman.')) return;
