@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Pencil, Trash2, Search, X, Save, Loader2, Upload, Camera, LogIn } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, Save, Loader2, Upload, Camera, LogIn, FileText } from 'lucide-react';
 import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import imageCompression from 'browser-image-compression';
+import StudentAttendanceModal from './StudentAttendanceModal';
 
 // Initialize Supabase Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -28,6 +29,10 @@ export default function StudentManager() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+
+    // Attendance Modal State
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+    const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         nim: '',
@@ -170,6 +175,11 @@ export default function StudentManager() {
         setIsModalOpen(true);
     };
 
+    const handleViewAttendance = (studentId: string) => {
+        setSelectedStudentId(studentId);
+        setIsAttendanceModalOpen(true);
+    };
+
     const filteredStudents = students.filter(s =>
         s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.nim.includes(searchTerm)
@@ -244,6 +254,13 @@ export default function StudentManager() {
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <button
+                                                onClick={() => handleViewAttendance(student.id)}
+                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                title="Lihat Absensi"
+                                            >
+                                                <FileText className="w-4 h-4" />
+                                            </button>
+                                            <button
                                                 onClick={async () => {
                                                     if (!confirm(`Login sebagai ${student.full_name}?`)) return;
                                                     try {
@@ -270,13 +287,15 @@ export default function StudentManager() {
                                             </button>
                                             <button
                                                 onClick={() => openModal(student)}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                                                title="Edit"
                                             >
                                                 <Pencil className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(student.id)}
                                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                title="Hapus"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -289,7 +308,7 @@ export default function StudentManager() {
                 </table>
             </div>
 
-            {/* Modal */}
+            {/* Edit/Add Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
                     <div className="bg-white rounded-xl w-full max-w-2xl p-6 my-8">
@@ -416,6 +435,15 @@ export default function StudentManager() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Attendance Modal */}
+            {selectedStudentId && (
+                <StudentAttendanceModal
+                    studentId={selectedStudentId}
+                    isOpen={isAttendanceModalOpen}
+                    onClose={() => setIsAttendanceModalOpen(false)}
+                />
             )}
         </div>
     );
