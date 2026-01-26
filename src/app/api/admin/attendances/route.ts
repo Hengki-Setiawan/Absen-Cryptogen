@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
+
     // Ensure columns exist (Auto-migration for Admin View)
     try { await db.execute(`ALTER TABLE attendances ADD COLUMN latitude REAL`); } catch (e) { }
     try { await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`); } catch (e) { }
     try { await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`); } catch (e) { }
 
-    const result = await db.execute(`
+    // Get total count
+    const countResult = await db.execute('SELECT COUNT(*) as total FROM attendances');
+    const total = countResult.rows[0].total as number;
+
+    const result = await db.execute({
+      sql: `
       SELECT 
         a.id,
         a.attendance_date,
@@ -27,9 +37,20 @@ export async function GET() {
       JOIN users u ON a.user_id = u.id
       JOIN courses c ON a.course_id = c.id
       ORDER BY a.attendance_date DESC, a.check_in_time DESC
-    `);
+      LIMIT ? OFFSET ?
+    `,
+      args: [limit, offset]
+    });
 
-    return NextResponse.json(result.rows);
+    return NextResponse.json({
+      data: result.rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Failed to fetch attendances:', error);
     return NextResponse.json({ error: 'Failed to fetch attendances' }, { status: 500 });

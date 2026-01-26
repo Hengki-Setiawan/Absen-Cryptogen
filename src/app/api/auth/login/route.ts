@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import bcrypt from 'bcryptjs';
+import { loginSchema } from '@/lib/validations';
 
 export async function POST(request: Request) {
     try {
-        const { username, password } = await request.json();
+        const body = await request.json();
+        const validation = loginSchema.safeParse(body);
 
-        if (!username || !password) {
-            return NextResponse.json({ error: 'Username dan password wajib diisi' }, { status: 400 });
+        if (!validation.success) {
+            return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
         }
 
+        const { username, password } = validation.data;
+
         const result = await db.execute({
-            sql: "SELECT id, full_name, role, username, nim FROM users WHERE username = ? AND password = ?",
-            args: [username, password]
+            sql: "SELECT id, full_name, role, username, nim, password FROM users WHERE username = ?",
+            args: [username]
         });
 
         if (result.rows.length === 0) {
@@ -19,6 +24,23 @@ export async function POST(request: Request) {
         }
 
         const user = result.rows[0];
+
+        // Verify password
+        const isValid = await bcrypt.compare(password, user.password as string);
+
+        if (!isValid) {
+            // Fallback for legacy plaintext passwords (temporary migration)
+            if (password === user.password) {
+                // Auto-hash the password for next time
+                const newHash = await bcrypt.hash(password, 10);
+                await db.execute({
+                    sql: "UPDATE users SET password = ? WHERE id = ?",
+                    args: [newHash, user.id]
+                });
+            } else {
+                return NextResponse.json({ error: 'Username atau password salah' }, { status: 401 });
+            }
+        }
 
         return NextResponse.json({
             success: true,

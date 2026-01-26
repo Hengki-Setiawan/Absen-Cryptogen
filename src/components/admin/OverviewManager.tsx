@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FileSpreadsheet, Loader2, RefreshCw, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileSpreadsheet, Loader2, RefreshCw, Trash2, ChevronDown, ChevronRight, ChevronLeft, ChevronRight as ChevronNext } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 type Attendance = {
     id: string;
@@ -35,6 +36,12 @@ export default function OverviewManager() {
     const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [limit] = useState(50);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+
     // Date filter state
     const [filterType, setFilterType] = useState<'all' | 'week' | 'month' | 'custom'>('all');
     const [startDate, setStartDate] = useState('');
@@ -43,10 +50,21 @@ export default function OverviewManager() {
     const fetchAttendances = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('/api/admin/attendances');
+            const res = await fetch(`/api/admin/attendances?page=${page}&limit=${limit}`);
             if (!res.ok) throw new Error('Failed to fetch');
-            const data = await res.json();
+            const responseData = await res.json();
+
+            // Handle both old array format (fallback) and new pagination format
+            const data = Array.isArray(responseData) ? responseData : responseData.data;
+            const pagination = !Array.isArray(responseData) ? responseData.pagination : null;
+
             setAttendances(data);
+
+            if (pagination) {
+                setTotalPages(pagination.totalPages);
+                setTotalRecords(pagination.total);
+            }
+
             // Auto-expand first date
             if (data.length > 0) {
                 setExpandedDates(new Set([data[0].attendance_date]));
@@ -56,7 +74,7 @@ export default function OverviewManager() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [page, limit]);
 
     const runCleanup = useCallback(async () => {
         try {
@@ -260,7 +278,7 @@ export default function OverviewManager() {
             <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-slate-700">Rekap Absensi</h3>
-                    <p className="text-sm text-slate-500">Total {filteredAttendances.length} data (dari {attendances.length})</p>
+                    <p className="text-sm text-slate-500">Total {totalRecords} data (Halaman {page} dari {totalPages})</p>
                 </div>
 
                 <div className="w-full md:w-auto flex flex-wrap gap-2 mb-2 md:mb-0">
@@ -311,7 +329,19 @@ export default function OverviewManager() {
             </div>
 
             {isLoading ? (
-                <div className="text-center py-12">Memuat...</div>
+                <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
+                            <div className="p-4 bg-slate-50 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="w-5 h-5 rounded-full" />
+                                    <Skeleton className="h-6 w-32" />
+                                    <Skeleton className="h-4 w-24" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             ) : attendances.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">Belum ada data absensi</div>
             ) : (
@@ -395,6 +425,27 @@ export default function OverviewManager() {
                     ))}
                 </div>
             )}
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center gap-4 mt-6">
+                <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1 || isLoading}
+                    className="p-2 border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-sm text-slate-600">
+                    Halaman {page} dari {totalPages}
+                </span>
+                <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages || isLoading}
+                    className="p-2 border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+                >
+                    <ChevronNext className="w-5 h-5" />
+                </button>
+            </div>
         </div>
     );
 }

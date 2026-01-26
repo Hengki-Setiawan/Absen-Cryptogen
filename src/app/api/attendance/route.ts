@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, generateId } from '@/lib/db';
+import { attendanceSchema } from '@/lib/validations';
 
 // UNM Parangtambung coordinates
 const UNM_LAT = -5.181667;
@@ -29,12 +30,14 @@ function formatDistance(meters: number): string {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { studentId, courseId, attendanceDate, status, notes, photoUrl, isQr, latitude, longitude } = body;
+        const validation = attendanceSchema.safeParse(body);
 
-        // Validate required fields
-        if (!studentId || !courseId || !attendanceDate || !status) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        if (!validation.success) {
+            return NextResponse.json({ error: validation.error.errors[0].message }, { status: 400 });
         }
+
+        // Rename courseId to scheduleId for clarity, as the client sends scheduleId in this field
+        const { studentId, courseId: scheduleId, attendanceDate, status, notes, photoUrl, isQr, latitude, longitude } = validation.data;
 
         if (!isQr && !photoUrl) {
             return NextResponse.json({ error: 'Photo is required for manual attendance' }, { status: 400 });
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
         // Get schedule's course_id and check for duplicate in a single query
         const scheduleResult = await db.execute({
             sql: 'SELECT course_id FROM schedules WHERE id = ?',
-            args: [courseId]
+            args: [scheduleId]
         });
 
         if (scheduleResult.rows.length === 0) {
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
         // Rate Limiting: Check if student already submitted
         const existingAttendance = await db.execute({
             sql: `SELECT id FROM attendances WHERE user_id = ? AND schedule_id = ? AND attendance_date = ? LIMIT 1`,
-            args: [studentId, courseId, attendanceDate]
+            args: [studentId, scheduleId, attendanceDate]
         });
 
         if (existingAttendance.rows.length > 0) {
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
                 attendanceId,
                 studentId,
                 realCourseId,
-                courseId,
+                scheduleId,
                 attendanceDate,
                 serverTimestamp,
                 status,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, generateId } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
     try {
@@ -8,6 +9,8 @@ export async function POST(request: Request) {
         if (!nim || !full_name || !password) {
             return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 });
         }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Check if NIM already exists
         const existingUserResult = await db.execute({
@@ -29,7 +32,7 @@ export async function POST(request: Request) {
                 sql: `UPDATE users SET full_name = ?, password = ?, username = ?, email = ? WHERE id = ?`,
                 args: [
                     full_name,
-                    password,
+                    hashedPassword,
                     nim, // Set username to NIM
                     `${nim}@student.unm.ac.id`, // Default email
                     user.id
@@ -52,7 +55,7 @@ export async function POST(request: Request) {
                 `${nim}@student.unm.ac.id`, // Default email placeholder
                 full_name,
                 username,
-                password
+                hashedPassword
             ]
         });
 
