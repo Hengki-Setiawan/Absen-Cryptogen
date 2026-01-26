@@ -6,6 +6,8 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const courseId = searchParams.get('courseId');
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
 
         if (!courseId) {
             return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
@@ -35,32 +37,43 @@ export async function GET(request: Request) {
         });
         const students = studentsResult.rows;
 
-        // 3. Get All Schedules/Meetings for this Course (to determine columns)
-        // We want all dates where attendance has been recorded or scheduled
-        // For simplicity, let's get all unique attendance dates for this course
+        // 3. Get Attendance Dates (Filtered)
+        let dateQuery = 'SELECT DISTINCT attendance_date FROM attendances WHERE course_id = ?';
+        const dateArgs: any[] = [courseId];
+
+        if (startDate && endDate) {
+            dateQuery += ' AND attendance_date BETWEEN ? AND ?';
+            dateArgs.push(startDate, endDate);
+        }
+
+        dateQuery += ' ORDER BY attendance_date ASC';
+
         const datesResult = await db.execute({
-            sql: `
-        SELECT DISTINCT attendance_date 
-        FROM attendances 
-        WHERE course_id = ? 
-        ORDER BY attendance_date ASC
-      `,
-            args: [courseId]
+            sql: dateQuery,
+            args: dateArgs
         });
         const dates = datesResult.rows.map(r => String(r.attendance_date));
 
         if (dates.length === 0) {
-            return NextResponse.json({ error: 'No attendance data found for this course' }, { status: 404 });
+            return NextResponse.json({ error: 'No attendance data found for this period' }, { status: 404 });
         }
 
-        // 4. Get All Attendance Records
-        const attendanceResult = await db.execute({
-            sql: `
+        // 4. Get Attendance Records (Filtered)
+        let attQuery = `
         SELECT user_id, attendance_date, status
         FROM attendances
         WHERE course_id = ?
-      `,
-            args: [courseId]
+      `;
+        const attArgs: any[] = [courseId];
+
+        if (startDate && endDate) {
+            attQuery += ' AND attendance_date BETWEEN ? AND ?';
+            attArgs.push(startDate, endDate);
+        }
+
+        const attendanceResult = await db.execute({
+            sql: attQuery,
+            args: attArgs
         });
 
         // Create a lookup map: userId -> date -> status

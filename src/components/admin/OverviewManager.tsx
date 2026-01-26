@@ -47,6 +47,11 @@ export default function OverviewManager() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
+    // Course filter for export
+    const [courses, setCourses] = useState<{ id: string; name: string; code: string }[]>([]);
+    const [selectedCourseId, setSelectedCourseId] = useState('');
+    const [isCourseExporting, setIsCourseExporting] = useState(false);
+
     const fetchAttendances = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -95,7 +100,60 @@ export default function OverviewManager() {
 
     useEffect(() => {
         fetchAttendances();
+        // Fetch courses for dropdown
+        fetch('/api/courses').then(res => res.json()).then(data => {
+            if (Array.isArray(data)) setCourses(data);
+        }).catch(console.error);
     }, [fetchAttendances]);
+
+    const handleCourseExport = async () => {
+        if (!selectedCourseId) {
+            alert('Pilih mata kuliah terlebih dahulu');
+            return;
+        }
+
+        setIsCourseExporting(true);
+        try {
+            let url = `/api/admin/export/attendance?courseId=${selectedCourseId}`;
+
+            // Add date filters if custom is selected
+            if (filterType === 'custom' && startDate && endDate) {
+                url += `&startDate=${startDate}&endDate=${endDate}`;
+            } else if (filterType === 'week') {
+                const today = new Date();
+                const weekAgo = new Date(today);
+                weekAgo.setDate(today.getDate() - 7);
+                url += `&startDate=${weekAgo.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`;
+            } else if (filterType === 'month') {
+                const today = new Date();
+                const monthAgo = new Date(today);
+                monthAgo.setMonth(today.getMonth() - 1);
+                url += `&startDate=${monthAgo.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`;
+            }
+
+            const res = await fetch(url);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Export failed');
+            }
+
+            const blob = await res.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            const course = courses.find(c => c.id === selectedCourseId);
+            a.download = `Rekap_${course?.name || 'Course'}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error: any) {
+            console.error('Export error:', error);
+            alert('Gagal export: ' + error.message);
+        } finally {
+            setIsCourseExporting(false);
+        }
+    };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Hapus data absensi ini? Foto juga akan dihapus dari storage.')) return;
@@ -310,6 +368,28 @@ export default function OverviewManager() {
                             />
                         </div>
                     )}
+
+                    {/* Course Selection for Export */}
+                    <select
+                        value={selectedCourseId}
+                        onChange={(e) => setSelectedCourseId(e.target.value)}
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none min-w-[180px]"
+                    >
+                        <option value="">Pilih Matkul...</option>
+                        {courses.map(course => (
+                            <option key={course.id} value={course.id}>
+                                {course.code} - {course.name}
+                            </option>
+                        ))}
+                    </select>
+                    <button
+                        onClick={handleCourseExport}
+                        disabled={isCourseExporting || !selectedCourseId}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                        {isCourseExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                        Export Matkul
+                    </button>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
