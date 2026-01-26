@@ -18,7 +18,7 @@ export async function GET(
         if (userResult.rows.length === 0) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
-        const user = userResult.rows[0];
+        const user = userResult.rows[0] as unknown as { full_name: string; nim: string; email: string };
 
         // 2. Get All Attendance Records for this Student
         const attendanceResult = await db.execute({

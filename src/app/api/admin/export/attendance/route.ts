@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         if (courseResult.rows.length === 0) {
             return NextResponse.json({ error: 'Course not found' }, { status: 404 });
         }
-        const course = courseResult.rows[0];
+        const course = courseResult.rows[0] as unknown as { name: string; code: string; semester: string };
 
         // 2. Get All Students Enrolled in the Course
         const studentsResult = await db.execute({
