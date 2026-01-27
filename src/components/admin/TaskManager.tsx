@@ -11,6 +11,8 @@ type Task = {
     deadline: string;
     course_name: string;
     course_code: string;
+    submission_link?: string;
+    output_type?: string;
 };
 
 type Course = {
@@ -26,7 +28,14 @@ export default function TaskManager() {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [formData, setFormData] = useState({ courseId: '', title: '', description: '', deadline: '' });
+    const [formData, setFormData] = useState({
+        courseId: '',
+        title: '',
+        description: '',
+        deadline: '',
+        submissionLink: '',
+        outputType: ''
+    });
 
     useEffect(() => {
         fetchData();
@@ -75,7 +84,8 @@ export default function TaskManager() {
 
             setShowForm(false);
             setEditingId(null);
-            setFormData({ courseId: '', title: '', description: '', deadline: '' });
+            setEditingId(null);
+            setFormData({ courseId: '', title: '', description: '', deadline: '', submissionLink: '', outputType: '' });
             fetchData();
         } catch (error) {
             alert('Gagal menyimpan tugas');
@@ -89,7 +99,9 @@ export default function TaskManager() {
             courseId: task.course_id || '',
             title: task.title,
             description: task.description || '',
-            deadline: task.deadline || ''
+            deadline: task.deadline || '',
+            submissionLink: task.submission_link || '',
+            outputType: task.output_type || ''
         });
         setEditingId(task.id);
         setShowForm(true);
@@ -113,7 +125,7 @@ export default function TaskManager() {
                     <p className="text-sm text-slate-500">Total {tasks.length} tugas</p>
                 </div>
                 <button
-                    onClick={() => { setShowForm(true); setEditingId(null); setFormData({ courseId: '', title: '', description: '', deadline: '' }); }}
+                    onClick={() => { setShowForm(true); setEditingId(null); setFormData({ courseId: '', title: '', description: '', deadline: '', submissionLink: '', outputType: '' }); }}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                     <Plus className="w-4 h-4" /> Tambah Tugas
@@ -168,6 +180,34 @@ export default function TaskManager() {
                                     onChange={e => setFormData(p => ({ ...p, deadline: e.target.value }))}
                                     className="w-full p-2 border rounded-lg"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Link Pengumpulan (Opsional)</label>
+                                <input
+                                    type="url"
+                                    value={formData.submissionLink}
+                                    onChange={e => setFormData(p => ({ ...p, submissionLink: e.target.value }))}
+                                    className="w-full p-2 border rounded-lg"
+                                    placeholder="https://..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Format Output (Opsional)</label>
+                                <select
+                                    value={formData.outputType}
+                                    onChange={e => setFormData(p => ({ ...p, outputType: e.target.value }))}
+                                    className="w-full p-2 border rounded-lg"
+                                >
+                                    <option value="">-- Bebas / Tidak ditentukan --</option>
+                                    <option value="PDF">PDF Document (.pdf)</option>
+                                    <option value="Word">Word Document (.docx)</option>
+                                    <option value="PPT">PowerPoint (.pptx)</option>
+                                    <option value="Excel">Excel Spreadsheet (.xlsx)</option>
+                                    <option value="Image">Gambar (JPG/PNG)</option>
+                                    <option value="Video">Video (MP4)</option>
+                                    <option value="Link">Link / URL</option>
+                                    <option value="Source Code">Source Code (ZIP/Git)</option>
+                                </select>
                             </div>
                             <button
                                 type="submit"

@@ -11,6 +11,8 @@ type Task = {
     deadline: string;
     course_name: string;
     course_code: string;
+    submission_link?: string;
+    output_type?: string;
 };
 
 export default function TasksPage() {
@@ -93,7 +95,27 @@ export default function TasksPage() {
                                                 )}
                                             </div>
                                             <h3 className="text-lg font-bold text-slate-900 mb-1">{task.title}</h3>
-                                            <p className="text-slate-600 text-sm whitespace-pre-line">{task.description}</p>
+                                            <p className="text-slate-600 text-sm whitespace-pre-line mb-3">{task.description}</p>
+
+                                            <div className="flex flex-wrap gap-3">
+                                                {task.output_type && (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+                                                        <BookOpen className="w-3.5 h-3.5" />
+                                                        Format: {task.output_type}
+                                                    </span>
+                                                )}
+                                                {task.submission_link && (
+                                                    <a
+                                                        href={task.submission_link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-blue-50 text-blue-600 text-xs font-medium border border-blue-100 hover:bg-blue-100 transition-colors"
+                                                    >
+                                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                                        Kumpul Tugas
+                                                    </a>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-1 text-right min-w-[140px]">

@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { courseId, title, description, deadline } = body;
+        const { courseId, title, description, deadline, submissionLink, outputType } = body;
 
         if (!courseId || !title || !deadline) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
 
         const id = generateId();
         await db.execute({
-            sql: `INSERT INTO tasks (id, course_id, title, description, deadline) VALUES (?, ?, ?, ?, ?)`,
-            args: [id, courseId, title, description, deadline]
+            sql: `INSERT INTO tasks (id, course_id, title, description, deadline, submission_link, output_type) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            args: [id, courseId, title, description, deadline, submissionLink || null, outputType || null]
         });
 
         return NextResponse.json({ success: true, id });
