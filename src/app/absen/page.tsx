@@ -67,11 +67,12 @@ export default function AbsenPage() {
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isCompressing, setIsCompressing] = useState(false);
-    const [isQrSubmission, setIsQrSubmission] = useState(false);
+    const [isProcessingQr, setIsProcessingQr] = useState(false);
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error' | 'offline-saved'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isQrSubmission, setIsQrSubmission] = useState(false);
 
     const [isOffline, setIsOffline] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
@@ -79,6 +80,9 @@ export default function AbsenPage() {
     const [requireLocation, setRequireLocation] = useState(true);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [location, setLocation] = useState<{ lat: number; long: number; accuracy: number; isMock: boolean } | null>(null);
+    const [locationError, setLocationError] = useState('');
 
     // Check online status
     useEffect(() => {
@@ -202,21 +206,16 @@ export default function AbsenPage() {
                 const data = await response.json();
                 setStudents(data.students);
                 setCourses(data.courses);
-
-                // Save to cache
+                // Cache data
                 localStorage.setItem('absen-data-cache', JSON.stringify(data));
                 localStorage.setItem('absen-data-timestamp', Date.now().toString());
             } catch (error) {
-                console.error('Error fetching data:', error);
-                if (showLoading) {
-                    setErrorMessage('Gagal memuat data. Silakan refresh halaman.');
-                }
+                console.error('Failed to fetch data:', error);
+                setErrorMessage('Gagal memuat data mahasiswa dan mata kuliah.');
             } finally {
                 if (showLoading) setIsLoadingData(false);
             }
         }
-
-        fetchData();
 
         // Fetch location requirement setting
         fetch('/api/settings')
@@ -225,140 +224,9 @@ export default function AbsenPage() {
                 setRequireLocation(data.require_location === 'true');
             })
             .catch(() => setRequireLocation(true)); // Default to requiring location
+
+        fetchData();
     }, []);
-
-    // Handle QR Token & Auto Attendance
-    useEffect(() => {
-        if (courses.length === 0) return;
-
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        const userSession = localStorage.getItem('user_session');
-        const user = userSession ? JSON.parse(userSession) : null;
-
-        if (token) {
-            try {
-                const json = atob(token);
-                const data = JSON.parse(json);
-
-                // Check expiry
-                if (data.exp < Date.now()) {
-                    setErrorMessage('QR Code sudah kadaluarsa. Silakan minta QR baru.');
-                    return;
-                }
-
-                // Set Course
-                const course = courses.find(c => c.id === data.sid);
-                if (course) {
-                    setSelectedCourse(course.id);
-                    setCourseInput(`${course.name} - ${course.day} (${course.start_time})`);
-                }
-
-                // Set Date
-                if (data.d) {
-                    setAttendanceDate(data.d);
-                }
-
-                // AUTO ATTENDANCE if Logged In
-                if (user && user.role === 'student') {
-                    // Auto-fill student info
-                    setSelectedStudent(user.id);
-                    setStudentInput(`${user.name} (${user.nim})`);
-
-                    // Auto Submit
-                    if (course && data.d) {
-                        handleAutoSubmit(user.id, course.id, data.d);
-                    }
-                }
-
-            } catch (e) {
-                console.error('Invalid token', e);
-            }
-        } else if (user && user.role === 'student') {
-            // Just auto-fill if no token but logged in
-            setSelectedStudent(user.id);
-            setStudentInput(`${user.name} (${user.nim})`);
-        }
-    }, [courses]);
-
-    const handleAutoSubmit = async (studentId: string, courseId: string, date: string) => {
-        setIsSubmitting(true);
-        setErrorMessage('');
-
-        // Get location for QR auto-submit (only if required)
-        let currentLoc = null;
-        if (requireLocation) {
-            try {
-                currentLoc = await getLocation();
-                setLocation(currentLoc);
-            } catch (error: any) {
-                console.error('Location error:', error);
-                setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS untuk absen QR.');
-                setIsSubmitting(false);
-                return;
-            }
-        }
-
-        try {
-            // Check if already present? (Optional optimization)
-
-            // Submit without photo (QR privilege)
-            const res = await fetch('/api/attendance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    studentId,
-                    courseId,
-                    attendanceDate: date,
-                    status: 'hadir',
-                    notes: 'Auto-attendance via QR',
-                    photoUrl: null, // No photo needed for QR
-                    timestamp: new Date().toISOString(),
-                    isQr: true, // Flag to bypass photo check in API if needed
-                    latitude: currentLoc?.lat,
-                    longitude: currentLoc?.long,
-                    accuracy: currentLoc?.accuracy
-                }),
-            });
-
-            if (!res.ok) throw new Error('Auto-attendance failed');
-
-            setSubmitStatus('success');
-        } catch (error) {
-            console.error('Auto submit error:', error);
-            setErrorMessage('Gagal absen otomatis. Silakan absen manual.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setIsCompressing(true);
-            try {
-                const options = {
-                    maxSizeMB: 0.08, // 80KB max - faster upload
-                    maxWidthOrHeight: 600, // Smaller resolution
-                    useWebWorker: true,
-                    fileType: 'image/webp', // Convert to WebP for smaller size
-                    initialQuality: 0.6,
-                };
-                const compressedFile = await imageCompression(file, options);
-                setFile(compressedFile);
-                const url = URL.createObjectURL(compressedFile);
-                setPreviewUrl(url);
-            } catch (error) {
-                console.error('Compression error:', error);
-                setErrorMessage('Gagal memproses gambar. Silakan coba lagi.');
-            } finally {
-                setIsCompressing(false);
-            }
-        }
-    };
-
-    const [location, setLocation] = useState<{ lat: number; long: number; accuracy: number; isMock: boolean } | null>(null);
-    const [locationError, setLocationError] = useState('');
 
     // Get location on mount or before submit
     const getLocation = () => {
@@ -406,6 +274,144 @@ export default function AbsenPage() {
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         });
+    };
+
+    const handleAutoSubmit = async (studentId: string, courseId: string, date: string) => {
+        setIsSubmitting(true);
+        setErrorMessage('');
+
+        // Get location for QR auto-submit (only if required)
+        let currentLoc = null;
+        if (requireLocation) {
+            try {
+                currentLoc = await getLocation();
+                setLocation(currentLoc);
+            } catch (error: any) {
+                console.error('Location error:', error);
+                setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS untuk absen QR.');
+                setIsSubmitting(false);
+                setIsProcessingQr(false);
+                return;
+            }
+        }
+
+        try {
+            // Check if already present? (Optional optimization)
+
+            // Submit without photo (QR privilege)
+            const res = await fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    studentId,
+                    courseId,
+                    attendanceDate: date,
+                    status: 'hadir',
+                    notes: 'Auto-attendance via QR',
+                    photoUrl: null, // No photo needed for QR
+                    timestamp: new Date().toISOString(),
+                    isQr: true, // Flag to bypass photo check in API if needed
+                    latitude: currentLoc?.lat,
+                    longitude: currentLoc?.long,
+                    accuracy: currentLoc?.accuracy
+                }),
+            });
+
+            if (!res.ok) throw new Error('Auto-attendance failed');
+
+            setSubmitStatus('success');
+        } catch (error) {
+            console.error('Auto submit error:', error);
+            setErrorMessage('Gagal absen otomatis. Silakan absen manual.');
+            setIsProcessingQr(false);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Handle QR Token & Auto Attendance
+    useEffect(() => {
+        if (courses.length === 0) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const userSession = localStorage.getItem('user_session');
+        const user = userSession ? JSON.parse(userSession) : null;
+
+        if (token) {
+            try {
+                const json = atob(token);
+                const data = JSON.parse(json);
+
+                // Check expiry
+                if (data.exp < Date.now()) {
+                    setErrorMessage('QR Code sudah kadaluarsa. Silakan minta QR baru.');
+                    return;
+                }
+
+                setIsQrSubmission(true);
+                setIsProcessingQr(true); // Start processing mode (hides form)
+
+                // Set Course
+                const course = courses.find(c => c.id === data.sid);
+                if (course) {
+                    setSelectedCourse(course.id);
+                    setCourseInput(`${course.name} - ${course.day} (${course.start_time})`);
+                }
+
+                // Set Date
+                if (data.d) {
+                    setAttendanceDate(data.d);
+                }
+
+                // AUTO ATTENDANCE if Logged In
+                if (user && user.role === 'student') {
+                    // Auto-fill student info
+                    setSelectedStudent(user.id);
+                    setStudentInput(`${user.name} (${user.nim})`);
+
+                    // Auto Submit
+                    if (course && data.d) {
+                        handleAutoSubmit(user.id, course.id, data.d);
+                    }
+                } else {
+                    setIsProcessingQr(false);
+                }
+
+            } catch (e) {
+                console.error('Invalid token', e);
+                setIsProcessingQr(false);
+            }
+        } else if (user && user.role === 'student') {
+            // Just auto-fill if no token but logged in
+            setSelectedStudent(user.id);
+            setStudentInput(`${user.name} (${user.nim})`);
+        }
+    }, [courses]);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setIsCompressing(true);
+            try {
+                const options = {
+                    maxSizeMB: 0.08, // 80KB max - faster upload
+                    maxWidthOrHeight: 600, // Smaller resolution
+                    useWebWorker: true,
+                    fileType: 'image/webp', // Convert to WebP for smaller size
+                    initialQuality: 0.6,
+                };
+                const compressedFile = await imageCompression(file, options);
+                setFile(compressedFile);
+                const url = URL.createObjectURL(compressedFile);
+                setPreviewUrl(url);
+            } catch (error) {
+                console.error('Compression error:', error);
+                setErrorMessage('Gagal memproses gambar. Silakan coba lagi.');
+            } finally {
+                setIsCompressing(false);
+            }
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -547,7 +553,8 @@ export default function AbsenPage() {
                         photoUrl: publicUrl,
                         latitude: currentLoc?.lat,
                         longitude: currentLoc?.long,
-                        accuracy: currentLoc?.accuracy
+                        accuracy: currentLoc?.accuracy,
+                        isQr: isQrSubmission
                     }),
                     signal: controller.signal
                 });
@@ -581,6 +588,18 @@ export default function AbsenPage() {
             setIsSubmitting(false);
         }
     };
+
+    if (isProcessingQr) {
+        return (
+            <div className="min-h-screen py-20 bg-slate-50 flex items-center justify-center">
+                <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md mx-4 w-full">
+                    <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Memproses QR Code...</h2>
+                    <p className="text-slate-600">Mohon tunggu sebentar, sedang mencatat kehadiranmu.</p>
+                </div>
+            </div>
+        );
+    }
 
     if (submitStatus === 'success') {
         return (

@@ -5,11 +5,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     try {
         const { id } = await params;
         const body = await request.json();
-        const { courseId, title, description, deadline } = body;
+        const { courseId, title, description, deadline, submissionLink, outputType } = body;
 
         await db.execute({
-            sql: `UPDATE tasks SET course_id = ?, title = ?, description = ?, deadline = ? WHERE id = ?`,
-            args: [courseId, title, description, deadline, id]
+            sql: `UPDATE tasks SET course_id = ?, title = ?, description = ?, deadline = ?, submission_link = ?, output_type = ? WHERE id = ?`,
+            args: [courseId, title, description, deadline, submissionLink || null, outputType || null, id]
         });
 
         return NextResponse.json({ success: true });

@@ -207,6 +207,7 @@ export default function TaskManager() {
                                     <option value="Video">Video (MP4)</option>
                                     <option value="Link">Link / URL</option>
                                     <option value="Source Code">Source Code (ZIP/Git)</option>
+                                    <option value="Custom">Custom (Lainnya)</option>
                                 </select>
                             </div>
                             <button

@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PWAProvider from '@/components/PWAProvider';
+import ScrollToTop from '@/components/ScrollToTop';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -39,6 +40,7 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900`}>
         <PWAProvider>
+          <ScrollToTop />
           <Navbar />
           <main className="min-h-screen">
             {children}
