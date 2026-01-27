@@ -107,28 +107,49 @@ export default function OverviewManager() {
     }, [fetchAttendances]);
 
     const handleCourseExport = async () => {
-        if (!selectedCourseId) {
-            alert('Pilih mata kuliah terlebih dahulu');
-            return;
-        }
+
 
         setIsCourseExporting(true);
         try {
-            let url = `/api/admin/export/attendance?courseId=${selectedCourseId}`;
+            let url = '';
+            let filename = '';
+
+            // Determine API Endpoint based on selection
+            if (!selectedCourseId || selectedCourseId === 'all') {
+                url = '/api/admin/export/all';
+                filename = 'Rekap_Absensi_Semua.xlsx';
+            } else {
+                url = `/api/admin/export/attendance?courseId=${selectedCourseId}`;
+                const course = courses.find(c => c.id === selectedCourseId);
+                filename = `Rekap_${course?.name || 'Course'}.xlsx`;
+            }
 
             // Add date filters if custom is selected
+            // Add date filters
+            const params = new URLSearchParams();
+
             if (filterType === 'custom' && startDate && endDate) {
-                url += `&startDate=${startDate}&endDate=${endDate}`;
+                params.append('startDate', startDate);
+                params.append('endDate', endDate);
             } else if (filterType === 'week') {
                 const today = new Date();
                 const weekAgo = new Date(today);
                 weekAgo.setDate(today.getDate() - 7);
-                url += `&startDate=${weekAgo.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`;
+                params.append('startDate', weekAgo.toISOString().split('T')[0]);
+                params.append('endDate', today.toISOString().split('T')[0]);
             } else if (filterType === 'month') {
                 const today = new Date();
                 const monthAgo = new Date(today);
                 monthAgo.setMonth(today.getMonth() - 1);
-                url += `&startDate=${monthAgo.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`;
+                params.append('startDate', monthAgo.toISOString().split('T')[0]);
+                params.append('endDate', today.toISOString().split('T')[0]);
+            }
+
+            // Append params to URL
+            if (url.includes('?')) {
+                url += '&' + params.toString();
+            } else {
+                url += '?' + params.toString();
             }
 
             const res = await fetch(url);
@@ -141,8 +162,7 @@ export default function OverviewManager() {
             const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = blobUrl;
-            const course = courses.find(c => c.id === selectedCourseId);
-            a.download = `Rekap_${course?.name || 'Course'}.xlsx`;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(blobUrl);
@@ -375,7 +395,7 @@ export default function OverviewManager() {
                         onChange={(e) => setSelectedCourseId(e.target.value)}
                         className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none min-w-[180px]"
                     >
-                        <option value="">Pilih Matkul...</option>
+                        <option value="all">Semua Mata Kuliah</option>
                         {courses.map(course => (
                             <option key={course.id} value={course.id}>
                                 {course.code} - {course.name}
@@ -384,11 +404,11 @@ export default function OverviewManager() {
                     </select>
                     <button
                         onClick={handleCourseExport}
-                        disabled={isCourseExporting || !selectedCourseId}
+                        disabled={isCourseExporting}
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                     >
                         {isCourseExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
-                        Export Matkul
+                        {(!selectedCourseId || selectedCourseId === 'all') ? 'Export Semua' : 'Export Matkul'}
                     </button>
                 </div>
 
@@ -402,9 +422,7 @@ export default function OverviewManager() {
                     <button onClick={fetchAttendances} disabled={isLoading} className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
                     </button>
-                    <button onClick={handleExportExcel} disabled={isExporting || attendances.length === 0} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50">
-                        {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />} Export Excel
-                    </button>
+
                 </div>
             </div>
 
