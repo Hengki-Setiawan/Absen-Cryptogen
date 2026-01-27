@@ -46,7 +46,7 @@ export default function TaskManager() {
             // Extract unique courses from schedules
             const uniqueCourses = schedulesData.reduce((acc: Course[], s: any) => {
                 if (!acc.find(c => c.name === s.course)) {
-                    acc.push({ id: s.id, name: s.course, code: s.course });
+                    acc.push({ id: s.course_id, name: s.course, code: s.course });
                 }
                 return acc;
             }, []);
