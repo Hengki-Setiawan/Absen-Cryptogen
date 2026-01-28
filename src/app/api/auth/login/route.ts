@@ -15,8 +15,8 @@ export async function POST(request: Request) {
         const { username, password } = validation.data;
 
         const result = await db.execute({
-            sql: "SELECT id, full_name, role, username, nim, password FROM users WHERE username = ?",
-            args: [username]
+            sql: "SELECT id, full_name, role, username, nim, password FROM users WHERE username = ? OR nim = ? OR email = ?",
+            args: [username, username, username]
         });
 
         if (result.rows.length === 0) {
