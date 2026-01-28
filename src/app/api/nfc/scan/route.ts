@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, generateId } from '@/lib/db';
-import { getAddressFromCoordinates } from '@/lib/geocoding';
+// import { getAddressFromCoordinates } from '@/lib/geocoding'; - REMOVED
 
 // POST - Process NFC card scan (auto-login + auto-attend)
 export async function POST(req: NextRequest) {
@@ -17,11 +17,11 @@ export async function POST(req: NextRequest) {
         try { await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`); } catch (e) { }
         try { await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`); } catch (e) { }
 
-        // Get Address if location is provided
+        // Get Address if location is provided - REMOVED
         let address = null;
-        if (latitude && longitude) {
-            address = await getAddressFromCoordinates(latitude, longitude);
-        }
+        // if (latitude && longitude) {
+        //     address = await getAddressFromCoordinates(latitude, longitude);
+        // }
 
         // Find NFC card by short ID
         const cardResult = await db.execute({
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
                 await db.execute({
                     sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time, latitude, longitude, address)
                           VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'), ?, ?, ?)`,
-                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date, latitude || null, longitude || null, address || null]
+                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date, null, null, null]
                 });
 
                 attendanceResults.push({

@@ -2,30 +2,11 @@ import { NextResponse } from 'next/server';
 import { db, generateId } from '@/lib/db';
 import { attendanceSchema } from '@/lib/validations';
 
-// UNM Parangtambung coordinates
-const UNM_LAT = -5.181667;
-const UNM_LONG = 119.425278;
+// UNM Parangtambung coordinates - REMOVED
+// const UNM_LAT = -5.181667;
+// const UNM_LONG = 119.425278;
 
-// Haversine formula to calculate distance between two coordinates
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371000; // Earth's radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in meters
-}
-
-// Format distance for display
-function formatDistance(meters: number): string {
-    if (meters >= 1000) {
-        return `${(meters / 1000).toFixed(1)} km`;
-    }
-    return `${Math.round(meters)} m`;
-}
+// Distance calculation functions - REMOVED
 
 export async function POST(request: Request) {
     try {
@@ -43,12 +24,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Photo is required for manual attendance' }, { status: 400 });
         }
 
-        // Calculate distance info (fast, no external API)
+        // Calculate distance info (fast, no external API) - REMOVED
         let distanceInfo = '';
-        if (latitude && longitude) {
-            const distance = calculateDistance(latitude, longitude, UNM_LAT, UNM_LONG);
-            distanceInfo = `[Jarak dari UNM: ${formatDistance(distance)}]`;
-        }
+        // if (latitude && longitude) {
+        //     const distance = calculateDistance(latitude, longitude, UNM_LAT, UNM_LONG);
+        //     distanceInfo = `[Jarak dari UNM: ${formatDistance(distance)}]`;
+        // }
 
         // Get schedule's course_id and check for duplicate in a single query
         const scheduleResult = await db.execute({
@@ -97,8 +78,8 @@ export async function POST(request: Request) {
                 status,
                 finalNotes,
                 photoUrl || (isQr ? 'QR_SUBMISSION' : null),
-                latitude || null,
-                longitude || null
+                null, // latitude
+                null  // longitude
             ]
         });
 

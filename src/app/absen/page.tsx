@@ -77,12 +77,12 @@ export default function AbsenPage() {
     const [isOffline, setIsOffline] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [requireLocation, setRequireLocation] = useState(true);
+    const [requireLocation, setRequireLocation] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [location, setLocation] = useState<{ lat: number; long: number; accuracy: number; isMock: boolean } | null>(null);
-    const [locationError, setLocationError] = useState('');
+    // const [location, setLocation] = useState<{ lat: number; long: number; accuracy: number; isMock: boolean } | null>(null);
+    // const [locationError, setLocationError] = useState('');
 
     // Check online status
     useEffect(() => {
@@ -217,83 +217,27 @@ export default function AbsenPage() {
             }
         }
 
-        // Fetch location requirement setting
-        fetch('/api/settings')
-            .then(res => res.json())
-            .then(data => {
-                setRequireLocation(data.require_location === 'true');
-            })
-            .catch(() => setRequireLocation(true)); // Default to requiring location
+        // Fetch location requirement setting - REMOVED
+        // fetch('/api/settings')
+        //     .then(res => res.json())
+        //     .then(data => {
+        //         setRequireLocation(data.require_location === 'true');
+        //     })
+        //     .catch(() => setRequireLocation(true)); // Default to requiring location
 
         fetchData();
     }, []);
 
-    // Get location on mount or before submit
-    const getLocation = () => {
-        return new Promise<{ lat: number; long: number; accuracy: number; isMock: boolean }>((resolve, reject) => {
-            // Check if running in browser
-            if (typeof window === 'undefined') {
-                reject(new Error('Tidak dapat mengakses lokasi'));
-                return;
-            }
-
-            if (!navigator.geolocation) {
-                reject(new Error('Browser tidak mendukung geolokasi. Gunakan browser modern.'));
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude, accuracy } = position.coords;
-                    // Basic Mock Location Detection
-                    // Accuracy 0 is suspicious.
-                    const isMock = accuracy === 0;
-
-                    resolve({
-                        lat: latitude,
-                        long: longitude,
-                        accuracy,
-                        isMock
-                    });
-                },
-                (error) => {
-                    let msg = 'Gagal mendapatkan lokasi.';
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            msg = 'Izin lokasi ditolak. Mohon aktifkan izin lokasi.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            msg = 'Informasi lokasi tidak tersedia.';
-                            break;
-                        case error.TIMEOUT:
-                            msg = 'Waktu permintaan lokasi habis.';
-                            break;
-                    }
-                    reject(new Error(msg));
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        });
-    };
+    // Get location on mount or before submit - REMOVED
+    // const getLocation = () => { ... }
 
     const handleAutoSubmit = async (studentId: string, courseId: string, date: string) => {
         setIsSubmitting(true);
         setErrorMessage('');
 
-        // Get location for QR auto-submit (only if required)
-        let currentLoc = null;
-        if (requireLocation) {
-            try {
-                currentLoc = await getLocation();
-                setLocation(currentLoc);
-            } catch (error: any) {
-                console.error('Location error:', error);
-                setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS untuk absen QR.');
-                setIsSubmitting(false);
-                setIsProcessingQr(false);
-                return;
-            }
-        }
+        // Get location for QR auto-submit (only if required) - REMOVED
+        // let currentLoc = null;
+        // if (requireLocation) { ... }
 
         try {
             // Check if already present? (Optional optimization)
@@ -311,9 +255,9 @@ export default function AbsenPage() {
                     photoUrl: null, // No photo needed for QR
                     timestamp: new Date().toISOString(),
                     isQr: true, // Flag to bypass photo check in API if needed
-                    latitude: currentLoc?.lat,
-                    longitude: currentLoc?.long,
-                    accuracy: currentLoc?.accuracy
+                    // latitude: currentLoc?.lat,
+                    // longitude: currentLoc?.long,
+                    // accuracy: currentLoc?.accuracy
                 }),
             });
 
@@ -437,31 +381,9 @@ export default function AbsenPage() {
 
         setIsSubmitting(true);
         setErrorMessage('');
-        setLocationError('');
-
-        let currentLoc = location;
-
-        // Try to get location if not already available
-        try {
-            currentLoc = await getLocation();
-            setLocation(currentLoc);
-
-            if (currentLoc.isMock) {
-                setErrorMessage('Terdeteksi penggunaan Lokasi Palsu (Mock Location). Mohon matikan Fake GPS.');
-                setIsSubmitting(false);
-                return;
-            }
-        } catch (error: any) {
-            console.error('Location error:', error);
-            // Only block if location is required
-            if (requireLocation) {
-                setErrorMessage(error.message || 'Gagal mendapatkan lokasi. Wajib aktifkan GPS.');
-                setIsSubmitting(false);
-                return;
-            }
-            // If location not required, proceed without it
-            currentLoc = null;
-        }
+        // Location check removed
+        // let currentLoc = location;
+        // Try to get location if not already available ...
 
         try {
             // Handle Offline Submission
@@ -474,8 +396,8 @@ export default function AbsenPage() {
                     notes,
                     file,
                     // @ts-ignore - offline storage might need update too, but for now let's focus on online
-                    latitude: currentLoc?.lat,
-                    longitude: currentLoc?.long
+                    // latitude: currentLoc?.lat,
+                    // longitude: currentLoc?.long
                 });
 
                 // Save student selection for next time
@@ -551,9 +473,9 @@ export default function AbsenPage() {
                         status,
                         notes,
                         photoUrl: publicUrl,
-                        latitude: currentLoc?.lat,
-                        longitude: currentLoc?.long,
-                        accuracy: currentLoc?.accuracy,
+                        // latitude: currentLoc?.lat,
+                        // longitude: currentLoc?.long,
+                        // accuracy: currentLoc?.accuracy,
                         isQr: isQrSubmission
                     }),
                     signal: controller.signal
