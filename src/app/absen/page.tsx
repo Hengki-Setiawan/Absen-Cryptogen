@@ -235,12 +235,25 @@ export default function AbsenPage() {
         setIsSubmitting(true);
         setErrorMessage('');
 
-        // Get location for QR auto-submit (only if required) - REMOVED
-        // let currentLoc = null;
-        // if (requireLocation) { ... }
-
         try {
-            // Check if already present? (Optional optimization)
+            const response = await fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    studentId,
+                    courseId,
+                    attendanceDate: date,
+                    status: 'hadir',
+                    notes: '',
+                    photoUrl: 'QR_SUBMISSION',
+                    isQr: true
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Gagal menyimpan data absensi');
+            }
 
             setSubmitStatus('success');
             setIsProcessingQr(false); // Stop loading on success
