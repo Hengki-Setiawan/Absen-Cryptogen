@@ -523,7 +523,7 @@ export default function OverviewManager() {
                                                                             const checkInWita = new Date(checkIn.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
                                                                             const scheduleWita = new Date(a.attendance_date + 'T' + a.schedule_start);
 
-                                                                            // Calculate diff in minutes
+                                                                            // Calculate diff in minutes (Updated logic)
                                                                             const diffMs = checkInWita.getTime() - scheduleWita.getTime();
                                                                             const diffMins = Math.floor(diffMs / 60000);
 
