@@ -242,30 +242,6 @@ export default function AbsenPage() {
         try {
             // Check if already present? (Optional optimization)
 
-            // Submit without photo (QR privilege)
-            const res = await fetch('/api/attendance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    studentId,
-                    courseId,
-                    attendanceDate: date,
-                    status: 'hadir',
-                    notes: 'Auto-attendance via QR',
-                    photoUrl: null, // No photo needed for QR
-                    timestamp: new Date().toISOString(),
-                    isQr: true, // Flag to bypass photo check in API if needed
-                    // latitude: currentLoc?.lat,
-                    // longitude: currentLoc?.long,
-                    // accuracy: currentLoc?.accuracy
-                }),
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Auto-attendance failed');
-            }
-
             setSubmitStatus('success');
         } catch (error: any) {
             console.error('Auto submit error:', error);

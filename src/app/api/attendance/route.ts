@@ -78,7 +78,7 @@ export async function POST(request: Request) {
                 serverTimestamp,
                 status,
                 finalNotes,
-                photoUrl || (isQr ? 'QR_SUBMISSION' : null)
+                photoUrl || (isQr ? 'QR_SUBMISSION' : 'MANUAL_SUBMISSION_NO_PHOTO') // Fallback to ensure not null
             ]
         });
 
