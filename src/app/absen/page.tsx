@@ -309,7 +309,7 @@ export default function AbsenPage() {
                 }
 
                 // AUTO ATTENDANCE if Logged In
-                if (user && user.role === 'student') {
+                if (user && (user.role === 'student' || user.role === 'admin')) {
                     // Auto-fill student info
                     setSelectedStudent(user.id);
                     setStudentInput(`${user.name} (${user.nim})`);
@@ -319,6 +319,9 @@ export default function AbsenPage() {
                         handleAutoSubmit(user.id, course.id, data.d);
                     }
                 } else {
+                    if (!user) {
+                        setErrorMessage('Silakan login sebagai mahasiswa untuk absen otomatis.');
+                    }
                     setIsProcessingQr(false);
                 }
 
@@ -326,7 +329,7 @@ export default function AbsenPage() {
                 console.error('Invalid token', e);
                 setIsProcessingQr(false);
             }
-        } else if (user && user.role === 'student') {
+        } else if (user && (user.role === 'student' || user.role === 'admin')) {
             // Just auto-fill if no token but logged in
             setSelectedStudent(user.id);
             setStudentInput(`${user.name} (${user.nim})`);
