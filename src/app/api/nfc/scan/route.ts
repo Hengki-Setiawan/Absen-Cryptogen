@@ -83,9 +83,9 @@ export async function POST(req: NextRequest) {
                 // Record attendance
                 const attendanceId = generateId();
                 await db.execute({
-                    sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time, latitude, longitude, address)
-                          VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'), ?, ?, ?)`,
-                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date, null, null, null]
+                    sql: `INSERT INTO attendances (id, user_id, course_id, schedule_id, status, attendance_date, check_in_time)
+                          VALUES (?, ?, ?, ?, 'hadir', ?, datetime('now'))`,
+                    args: [attendanceId, student.id, session.course_id, session.schedule_id, session.attendance_date]
                 });
 
                 attendanceResults.push({

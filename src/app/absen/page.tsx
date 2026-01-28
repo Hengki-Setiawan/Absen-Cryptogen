@@ -499,7 +499,9 @@ export default function AbsenPage() {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('API response error:', response.status, errorData);
-                throw new Error(errorData.details || errorData.error || 'Gagal menyimpan data absensi');
+                // Show raw JSON for debugging if specific fields are missing
+                const errorMsg = errorData.details || errorData.error || JSON.stringify(errorData) || 'Gagal menyimpan data absensi';
+                throw new Error(errorMsg);
             }
 
             // Save student selection for next time

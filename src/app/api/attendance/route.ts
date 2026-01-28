@@ -66,8 +66,8 @@ export async function POST(request: Request) {
         // Insert attendance (skip address for now - will be fetched in background later)
         await db.execute({
             sql: `INSERT INTO attendances (
-                id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url, latitude, longitude
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                id, user_id, course_id, schedule_id, attendance_date, check_in_time, status, notes, photo_url
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
                 attendanceId,
                 studentId,
@@ -77,9 +77,7 @@ export async function POST(request: Request) {
                 serverTimestamp,
                 status,
                 finalNotes,
-                photoUrl || (isQr ? 'QR_SUBMISSION' : null),
-                null, // latitude
-                null  // longitude
+                photoUrl || (isQr ? 'QR_SUBMISSION' : null)
             ]
         });
 
