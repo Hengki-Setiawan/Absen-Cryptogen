@@ -243,6 +243,7 @@ export default function AbsenPage() {
             // Check if already present? (Optional optimization)
 
             setSubmitStatus('success');
+            setIsProcessingQr(false); // Stop loading on success
         } catch (error: any) {
             console.error('Auto submit error:', error);
             setErrorMessage(error.message || 'Gagal absen otomatis. Silakan absen manual.');
@@ -280,6 +281,10 @@ export default function AbsenPage() {
                 if (course) {
                     setSelectedCourse(course.id);
                     setCourseInput(`${course.name} - ${course.day} (${course.start_time})`);
+                } else {
+                    setErrorMessage('Mata kuliah tidak ditemukan atau jadwal tidak cocok.');
+                    setIsProcessingQr(false);
+                    return;
                 }
 
                 // Set Date
@@ -495,18 +500,6 @@ export default function AbsenPage() {
         }
     };
 
-    if (isProcessingQr) {
-        return (
-            <div className="min-h-screen py-20 bg-slate-50 flex items-center justify-center">
-                <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md mx-4 w-full">
-                    <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Memproses QR Code...</h2>
-                    <p className="text-slate-600">Mohon tunggu sebentar, sedang mencatat kehadiranmu.</p>
-                </div>
-            </div>
-        );
-    }
-
     if (submitStatus === 'success') {
         return (
             <div className="min-h-screen py-20 bg-slate-50 flex items-center justify-center">
@@ -529,6 +522,18 @@ export default function AbsenPage() {
                     >
                         Isi Absen Lagi
                     </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (isProcessingQr) {
+        return (
+            <div className="min-h-screen py-20 bg-slate-50 flex items-center justify-center">
+                <div className="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md mx-4 w-full">
+                    <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Memproses QR Code...</h2>
+                    <p className="text-slate-600">Mohon tunggu sebentar, sedang mencatat kehadiranmu.</p>
                 </div>
             </div>
         );
