@@ -9,8 +9,9 @@ import { attendanceSchema } from '@/lib/validations';
 // Distance calculation functions - REMOVED
 
 export async function POST(request: Request) {
+    let body;
     try {
-        const body = await request.json();
+        body = await request.json();
         const validation = attendanceSchema.safeParse(body);
 
         if (!validation.success) {
@@ -86,8 +87,11 @@ export async function POST(request: Request) {
         console.error('Attendance submission error:', error);
         return NextResponse.json({
             error: 'Internal Server Error',
-            details: error.message,
-            stack: error.stack
+            message: error.message,
+            code: error.code,
+            details: error.toString(),
+            stack: error.stack,
+            receivedBody: body || 'body not parsed'
         }, { status: 500 });
     }
 }
