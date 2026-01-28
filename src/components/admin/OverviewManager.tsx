@@ -19,6 +19,8 @@ type Attendance = {
     latitude?: number;
     longitude?: number;
     address?: string;
+    schedule_start?: string;
+    schedule_end?: string;
 };
 
 type GroupedData = {
@@ -487,8 +489,70 @@ export default function OverviewManager() {
                                                         {items.map(a => (
                                                             <div key={a.id} className="flex items-center justify-between p-3 hover:bg-slate-50">
                                                                 <div className="flex-1">
-                                                                    <div className="font-medium text-sm">{a.student_name}</div>
-                                                                    <div className="text-xs text-slate-500">{a.nim} • {a.check_in_time}</div>
+                                                                    <div className="font-medium text-sm flex items-center gap-2">
+                                                                        {a.student_name}
+                                                                        {(() => {
+                                                                            if (!a.schedule_start) return null;
+
+                                                                            // Calculate Lateness
+                                                                            // check_in_time is ISO string (UTC or Server Time)
+                                                                            // attendance_date is YYYY-MM-DD
+                                                                            // schedule_start is HH:mm
+
+                                                                            // Create Date objects
+                                                                            const checkIn = new Date(a.check_in_time);
+
+                                                                            // Construct Schedule Date
+                                                                            // Assuming attendance_date is correct date
+                                                                            const scheduleDate = new Date(a.attendance_date + 'T' + a.schedule_start);
+
+                                                                            // Adjust for Timezone if needed?
+                                                                            // If check_in_time is UTC, and scheduleDate is local...
+                                                                            // Let's assume both are comparable or check difference
+
+                                                                            // Better approach: Get HH:mm from checkIn and compare with schedule_start
+                                                                            // But this fails if late into next day.
+
+                                                                            // Let's use the full date comparison
+                                                                            // We need to know the timezone of the server/user.
+                                                                            // Assuming WITA (UTC+8) for schedule times.
+
+                                                                            // Hack: Treat checkIn as if it's in the same timezone context
+                                                                            // checkIn.toLocaleString('en-US', { timeZone: 'Asia/Makassar' })
+
+                                                                            const checkInWita = new Date(checkIn.toLocaleString('en-US', { timeZone: 'Asia/Makassar' }));
+                                                                            const scheduleWita = new Date(a.attendance_date + 'T' + a.schedule_start);
+
+                                                                            // Calculate diff in minutes
+                                                                            const diffMs = checkInWita.getTime() - scheduleWita.getTime();
+                                                                            const diffMins = Math.floor(diffMs / 60000);
+
+                                                                            if (diffMins > 0) {
+                                                                                let lateText = '';
+                                                                                if (diffMins > 1440) lateText = `> 1 hari`;
+                                                                                else if (diffMins >= 60) lateText = `${Math.floor(diffMins / 60)} jam ${diffMins % 60} mnt`;
+                                                                                else lateText = `${diffMins} mnt`;
+
+                                                                                // "Kalau telat 1-2 jam tidak apa apa"
+                                                                                // Severity check: > 120 mins (2 hours) is Red, otherwise Yellow
+                                                                                const isSevere = diffMins > 120;
+                                                                                const badgeClass = isSevere
+                                                                                    ? "bg-red-100 text-red-600 border-red-200"
+                                                                                    : "bg-yellow-100 text-yellow-700 border-yellow-200";
+
+                                                                                return (
+                                                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeClass}`}>
+                                                                                        Telat {lateText}
+                                                                                    </span>
+                                                                                );
+                                                                            }
+                                                                            return null;
+                                                                        })()}
+                                                                    </div>
+                                                                    <div className="text-xs text-slate-500">
+                                                                        {a.nim} • {new Date(a.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                                        {a.schedule_start && <span className="text-slate-400 ml-1">(Jadwal: {a.schedule_start})</span>}
+                                                                    </div>
                                                                 </div>
                                                                 <div className="flex items-center gap-3">
                                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${a.status === 'hadir' ? 'bg-green-100 text-green-700' :

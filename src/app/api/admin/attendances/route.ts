@@ -32,10 +32,13 @@ export async function GET(request: Request) {
         u.nim,
         u.full_name as student_name,
         c.name as course_name,
-        c.code as course_code
+        c.code as course_code,
+        s.start_time as schedule_start,
+        s.end_time as schedule_end
       FROM attendances a
       JOIN users u ON a.user_id = u.id
       JOIN courses c ON a.course_id = c.id
+      LEFT JOIN schedules s ON a.schedule_id = s.id
       ORDER BY a.attendance_date DESC, a.check_in_time DESC
       LIMIT ? OFFSET ?
     `,
