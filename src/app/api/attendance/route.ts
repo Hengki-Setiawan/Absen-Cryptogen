@@ -84,8 +84,12 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({ success: true, id: attendanceId, distance: distanceInfo });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Attendance submission error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Internal Server Error',
+            details: error.message,
+            stack: error.stack
+        }, { status: 500 });
     }
 }
