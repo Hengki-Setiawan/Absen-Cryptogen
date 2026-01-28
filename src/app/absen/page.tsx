@@ -261,12 +261,15 @@ export default function AbsenPage() {
                 }),
             });
 
-            if (!res.ok) throw new Error('Auto-attendance failed');
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Auto-attendance failed');
+            }
 
             setSubmitStatus('success');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Auto submit error:', error);
-            setErrorMessage('Gagal absen otomatis. Silakan absen manual.');
+            setErrorMessage(error.message || 'Gagal absen otomatis. Silakan absen manual.');
             setIsProcessingQr(false);
         } finally {
             setIsSubmitting(false);
