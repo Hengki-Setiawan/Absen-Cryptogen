@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         const validation = attendanceSchema.safeParse(body);
 
         if (!validation.success) {
-            return NextResponse.json({ error: (validation.error as any).errors[0].message }, { status: 400 });
+            return NextResponse.json({ error: validation.error.issues[0]?.message || 'Validasi gagal' }, { status: 400 });
         }
 
         // Rename courseId to scheduleId for clarity, as the client sends scheduleId in this field
