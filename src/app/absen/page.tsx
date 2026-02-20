@@ -268,70 +268,101 @@ export default function AbsenPage() {
 
     // Handle QR Token & Auto Attendance
     useEffect(() => {
-        if (courses.length === 0) return;
-
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
+
+        // If no token, just normal behavior
+        if (!token) return;
+
+        // If token exists but data is still loading, wait
+        if (isLoadingData) return;
+
+        // If token exists but no courses loaded (and not loading), show error
+        if (courses.length === 0) {
+            setErrorMessage('Gagal memuat data mata kuliah. Silakan refresh halaman atau hubungi admin.');
+            return;
+        }
+
         const userSession = localStorage.getItem('user_session');
         const user = userSession ? JSON.parse(userSession) : null;
 
-        if (token) {
-            try {
-                const json = atob(token);
-                const data = JSON.parse(json);
+        try {
+            // Start processing immediately to hide form
+            setIsQrSubmission(true);
+            setIsProcessingQr(true);
 
-                // Check expiry
-                if (data.exp < Date.now()) {
-                    setErrorMessage('QR Code sudah kadaluarsa. Silakan minta QR baru.');
-                    return;
-                }
+            const json = atob(token);
+            const data = JSON.parse(json);
 
-                setIsQrSubmission(true);
-                setIsProcessingQr(true); // Start processing mode (hides form)
-
-                // Set Course
-                const course = courses.find(c => c.id === data.sid);
-                if (course) {
-                    setSelectedCourse(course.id);
-                    setCourseInput(`${course.name} - ${course.day} (${course.start_time})`);
-                } else {
-                    setErrorMessage('Mata kuliah tidak ditemukan atau jadwal tidak cocok.');
-                    setIsProcessingQr(false);
-                    return;
-                }
-
-                // Set Date
-                if (data.d) {
-                    setAttendanceDate(data.d);
-                }
-
-                // AUTO ATTENDANCE if Logged In
-                if (user && (user.role === 'student' || user.role === 'admin')) {
-                    // Auto-fill student info
-                    setSelectedStudent(user.id);
-                    setStudentInput(`${user.name} (${user.nim})`);
-
-                    // Auto Submit
-                    if (course && data.d) {
-                        handleAutoSubmit(user.id, course.id, data.d);
-                    }
-                } else {
-                    if (!user) {
-                        setErrorMessage('Silakan login sebagai mahasiswa untuk absen otomatis.');
-                    }
-                    setIsProcessingQr(false);
-                }
-
-            } catch (e) {
-                console.error('Invalid token', e);
-                setIsProcessingQr(false);
+            // Check expiry
+            if (data.exp < Date.now()) {
+                setErrorMessage('QR Code sudah kadaluarsa. Silakan minta QR baru.');
+                setIsProcessingQr(false); // Stop processing to show error
+                return;
             }
-        } else if (user && (user.role === 'student' || user.role === 'admin')) {
-            // Just auto-fill if no token but logged in
-            setSelectedStudent(user.id);
-            setStudentInput(`${user.name} (${user.nim})`);
+
+            // Set Date
+            if (data.d) {
+                setAttendanceDate(data.d);
+            }
+
+            // Set Course
+            const course = courses.find(c => c.id === data.sid);
+            if (course) {
+                setSelectedCourse(course.id);
+                setCourseInput(`${course.name} - ${course.day} (${course.start_time})`);
+            } else {
+                setErrorMessage('Mata kuliah tidak ditemukan dalam jadwal aktif. Pastikan data jadwal sudah diinput.');
+                setIsProcessingQr(false);
+                return;
+            }
+
+            // AUTO ATTENDANCE if Logged In
+            if (user && (user.role === 'student' || user.role === 'admin')) {
+                // Auto-fill student info
+                setSelectedStudent(user.id);
+                setStudentInput(`${user.name} (${user.nim})`);
+
+                // Auto Submit
+                if (course && data.d) {
+                    handleAutoSubmit(user.id, course.id, data.d);
+                }
+            } else {
+                // Not logged in
+                if (!user) {
+                    setErrorMessage('Silakan login terlebih dahulu untuk melakukan absensi otomatis.');
+                } else {
+                    setErrorMessage('Akun Anda tidak memiliki akses untuk absen (bukan mahasiswa).');
+                }
+                setIsProcessingQr(false); // Stop processing to show form (with error)
+            }
+
+        } catch (e) {
+            console.error('Invalid token', e);
+            setErrorMessage('QR Code tidak valid atau rusak.');
+            setIsProcessingQr(false);
         }
-    }, [courses]);
+    }, [courses, isLoadingData]);
+
+    // Auto-fill student data if logged in (and NO token)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+
+        // Only run if NO token, otherwise QR logic handles it
+        if (token) return;
+
+        const userSession = localStorage.getItem('user_session');
+        const user = userSession ? JSON.parse(userSession) : null;
+
+        if (user && (user.role === 'student' || user.role === 'admin')) {
+            // Only auto-fill if not already selected (to allow manual override if needed)
+            if (!selectedStudent) {
+                setSelectedStudent(user.id);
+                setStudentInput(`${user.name} (${user.nim})`);
+            }
+        }
+    }, [selectedStudent]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
