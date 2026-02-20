@@ -13,8 +13,16 @@ export async function GET() {
             students: studentsResult.rows,
             courses: coursesResult.rows
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Database error:', error);
-        return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+        return NextResponse.json({
+            error: 'Failed to fetch data',
+            message: error?.message || 'Unknown error',
+            code: error?.code,
+            cause: error?.cause?.message,
+            name: error?.name,
+            tursoUrl: process.env.TURSO_DATABASE_URL ? 'SET' : 'NOT SET',
+            tursoToken: process.env.TURSO_AUTH_TOKEN ? `SET (${process.env.TURSO_AUTH_TOKEN?.substring(0, 20)}...)` : 'NOT SET'
+        }, { status: 500 });
     }
 }
