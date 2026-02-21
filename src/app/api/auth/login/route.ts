@@ -28,18 +28,8 @@ export async function POST(request: Request) {
         // Verify password
         const isValid = await bcrypt.compare(password, user.password as string);
 
-        if (!isValid) {
-            // Fallback for legacy plaintext passwords (temporary migration)
-            if (password === user.password) {
-                // Auto-hash the password for next time
-                const newHash = await bcrypt.hash(password, 10);
-                await db.execute({
-                    sql: "UPDATE users SET password = ? WHERE id = ?",
-                    args: [newHash, user.id]
-                });
-            } else {
-                return NextResponse.json({ error: 'Username atau password salah' }, { status: 401 });
-            }
+        if (!isValid && password !== user.password) {
+            return NextResponse.json({ error: 'Username atau password salah' }, { status: 401 });
         }
 
         return NextResponse.json({

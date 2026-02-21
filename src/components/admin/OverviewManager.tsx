@@ -48,6 +48,7 @@ export default function OverviewManager() {
     const [filterType, setFilterType] = useState<'all' | 'week' | 'month' | 'custom'>('all');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Course filter for export
     const [courses, setCourses] = useState<{ id: string; name: string; code: string }[]>([]);
@@ -290,7 +291,21 @@ export default function OverviewManager() {
 
         return attendances.filter(a => {
             const date = new Date(a.attendance_date);
-            return date >= start && date <= end;
+            const inDateRange = date >= start && date <= end;
+
+            if (!inDateRange) return false;
+
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                return (
+                    (a.student_name && a.student_name.toLowerCase().includes(query)) ||
+                    (a.nim && a.nim.toLowerCase().includes(query)) ||
+                    (a.status && a.status.toLowerCase().includes(query)) ||
+                    (a.course_name && a.course_name.toLowerCase().includes(query))
+                );
+            }
+
+            return true;
         });
     };
 
@@ -362,6 +377,15 @@ export default function OverviewManager() {
                 </div>
 
                 <div className="w-full md:w-auto flex flex-wrap gap-2 mb-2 md:mb-0">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Cari nama, NIM, atau status..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full md:w-64"
+                        />
+                    </div>
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value as any)}

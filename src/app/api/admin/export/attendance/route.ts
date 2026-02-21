@@ -69,9 +69,10 @@ export async function GET(request: Request) {
 
         // 4. Get Attendance Records (Filtered)
         let attQuery = `
-        SELECT user_id, attendance_date, status
-        FROM attendances
-        WHERE course_id = ?
+        SELECT a.user_id, a.attendance_date, a.check_in_time, a.status, a.notes, a.photo_url, a.latitude, a.longitude, a.address, u.nim, u.full_name as student_name
+        FROM attendances a
+        JOIN users u ON a.user_id = u.id
+        WHERE a.course_id = ?
       `;
         const attArgs: any[] = [courseId];
 
@@ -120,18 +121,61 @@ export async function GET(request: Request) {
 
         // 6. Generate Excel File
         const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(data);
 
-        // Auto-width columns
-        const wscols = [
+        // --- Sheet 1: Matriks Kehadiran ---
+        const wsMatriks = XLSX.utils.aoa_to_sheet(data);
+
+        // Auto-width columns for Matriks
+        const wscolsMatriks = [
             { wch: 5 },  // No
             { wch: 15 }, // NIM
             { wch: 30 }, // Name
             ...dates.map(() => ({ wch: 12 })) // Date columns
         ];
-        ws['!cols'] = wscols;
+        wsMatriks['!cols'] = wscolsMatriks;
 
-        XLSX.utils.book_append_sheet(wb, ws, 'Absensi');
+        XLSX.utils.book_append_sheet(wb, wsMatriks, 'Matriks Kehadiran');
+
+        // --- Sheet 2: Data Lengkap ---
+        const completeData = attendanceResult.rows.map((row: any, index: number) => {
+            let method = 'Manual (Foto)';
+            if (row.photo_url === 'NFC_SCAN') method = 'NFC Card';
+            else if (row.photo_url === 'QR_SUBMISSION') method = 'QR Code';
+
+            const checkInDate = new Date(row.check_in_time);
+
+            return {
+                'No': index + 1,
+                'Tanggal': String(row.attendance_date),
+                'Waktu': checkInDate.toLocaleTimeString('id-ID'),
+                'NIM': String(row.nim),
+                'Nama Mahasiswa': String(row.student_name),
+                'Metode': method,
+                'Status': String(row.status).toUpperCase(),
+                'Keterangan': row.notes || '-',
+                'Lokasi': row.address || '-',
+                'Maps': row.latitude && row.longitude ? `https://www.google.com/maps?q=${row.latitude},${row.longitude}` : '-'
+            };
+        });
+
+        if (completeData.length > 0) {
+            const wsLengkap = XLSX.utils.json_to_sheet(completeData);
+            const wscolsLengkap = [
+                { wch: 5 },  // No
+                { wch: 12 }, // Tanggal
+                { wch: 10 }, // Waktu
+                { wch: 15 }, // NIM
+                { wch: 30 }, // Nama
+                { wch: 15 }, // Metode
+                { wch: 10 }, // Status
+                { wch: 20 }, // Keterangan
+                { wch: 30 }, // Lokasi
+                { wch: 40 }  // Maps
+            ];
+            wsLengkap['!cols'] = wscolsLengkap;
+            XLSX.utils.book_append_sheet(wb, wsLengkap, 'Data Lengkap');
+        }
+
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
         // 7. Return Response
