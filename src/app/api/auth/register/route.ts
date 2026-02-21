@@ -10,8 +10,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-
         // Check if NIM already exists
         const existingUserResult = await db.execute({
             sql: 'SELECT id, password FROM users WHERE nim = ?',
@@ -32,7 +30,7 @@ export async function POST(request: Request) {
                 sql: `UPDATE users SET full_name = ?, password = ?, username = ?, email = ? WHERE id = ?`,
                 args: [
                     full_name,
-                    hashedPassword,
+                    password,
                     nim, // Set username to NIM
                     `${nim}@student.unm.ac.id`, // Default email
                     user.id
@@ -55,7 +53,7 @@ export async function POST(request: Request) {
                 `${nim}@student.unm.ac.id`, // Default email placeholder
                 full_name,
                 username,
-                hashedPassword
+                password
             ]
         });
 
