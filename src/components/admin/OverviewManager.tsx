@@ -49,6 +49,12 @@ export default function OverviewManager() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // Course filter for export
     const [courses, setCourses] = useState<{ id: string; name: string; code: string }[]>([]);
@@ -58,7 +64,14 @@ export default function OverviewManager() {
     const fetchAttendances = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/admin/attendances?page=${page}&limit=${limit}`);
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: limit.toString()
+            });
+            if (debouncedSearch) {
+                params.append('search', debouncedSearch);
+            }
+            const res = await fetch(`/api/admin/attendances?${params.toString()}`);
             if (!res.ok) throw new Error('Failed to fetch');
             const responseData = await res.json();
 
@@ -82,7 +95,7 @@ export default function OverviewManager() {
         } finally {
             setIsLoading(false);
         }
-    }, [page, limit]);
+    }, [page, limit, debouncedSearch]);
 
     const runCleanup = useCallback(async () => {
         try {
@@ -294,16 +307,6 @@ export default function OverviewManager() {
             const inDateRange = date >= start && date <= end;
 
             if (!inDateRange) return false;
-
-            if (searchQuery) {
-                const query = searchQuery.toLowerCase();
-                return (
-                    (a.student_name && a.student_name.toLowerCase().includes(query)) ||
-                    (a.nim && a.nim.toLowerCase().includes(query)) ||
-                    (a.status && a.status.toLowerCase().includes(query)) ||
-                    (a.course_name && a.course_name.toLowerCase().includes(query))
-                );
-            }
 
             return true;
         });

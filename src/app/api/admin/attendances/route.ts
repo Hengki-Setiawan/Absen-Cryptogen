@@ -13,9 +13,34 @@ export async function GET(request: Request) {
     try { await db.execute(`ALTER TABLE attendances ADD COLUMN longitude REAL`); } catch (e) { }
     try { await db.execute(`ALTER TABLE attendances ADD COLUMN address TEXT`); } catch (e) { }
 
+    const search = searchParams.get('search') || '';
+
+    let whereClause = '';
+    const searchArgs: any[] = [];
+
+    if (search) {
+      whereClause = `
+          WHERE u.full_name LIKE ? 
+          OR u.nim LIKE ? 
+          OR a.status LIKE ? 
+          OR c.name LIKE ?
+        `;
+      const pattern = `%${search}%`;
+      searchArgs.push(pattern, pattern, pattern, pattern);
+    }
+
     // Get total count
-    const countResult = await db.execute('SELECT COUNT(*) as total FROM attendances');
+    const countQuery = `
+        SELECT COUNT(*) as total 
+        FROM attendances a 
+        JOIN users u ON a.user_id = u.id 
+        JOIN courses c ON a.course_id = c.id 
+        ${whereClause}
+    `;
+    const countResult = await db.execute({ sql: countQuery, args: searchArgs });
     const total = countResult.rows[0].total as number;
+
+    const queryArgs = [...searchArgs, limit, offset];
 
     const result = await db.execute({
       sql: `
@@ -39,10 +64,11 @@ export async function GET(request: Request) {
       JOIN users u ON a.user_id = u.id
       JOIN courses c ON a.course_id = c.id
       LEFT JOIN schedules s ON a.schedule_id = s.id
+      ${whereClause}
       ORDER BY a.attendance_date DESC, a.check_in_time DESC
       LIMIT ? OFFSET ?
     `,
-      args: [limit, offset]
+      args: queryArgs
     });
 
     return NextResponse.json({
